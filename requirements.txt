@@ -1,9 +1,9 @@
 Flask
 Flask-SocketIO
+simple-websocket
 werkzeug
 google-generativeai
 numpy
 python-dotenv
-eventlet
 packaging
 gunicorn

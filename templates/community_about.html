@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acerca de - ComunidadPro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .hero { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 80px 0; margin-bottom: 40px; }
+        .card { border: none; border-radius: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{{ url_for('index') }}"><i class="fas fa-users text-primary me-2"></i>ComunidadPro</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('creadores') }}">Creadores</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('recursos') }}">Recursos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('encuestas_vista') }}">Encuestas</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('ranking_comunidad') }}">Ranking</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('chat_comunidad_vista') }}">Chat</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="{{ url_for('about') }}">Acerca de</a></li>
+                    {% if usuario %}
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard') }}">Panel</a></li>
+                        {% if usuario.rol in ['admin', 'moderador'] %}
+                            <li class="nav-item"><a class="nav-link text-warning" href="{{ url_for('admin_panel') }}">Admin</a></li>
+                        {% endif %}
+                        <li class="nav-item"><a class="btn btn-outline-light btn-sm ms-2 mt-1" href="{{ url_for('logout') }}">Salir</a></li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">Iniciar Sesión</a></li>
+                        <li class="nav-item"><a class="btn btn-primary btn-sm ms-2 mt-1" href="{{ url_for('register') }}">Registrarse</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="hero text-center">
+        <div class="container">
+            <h1 class="display-4 fw-bold">Acerca de ComunidadPro</h1>
+            <p class="lead mt-3">La plataforma definitiva para la gestión de comunidades, creadores y contenido multimedia.</p>
+        </div>
+    </div>
+
+    <div class="container mb-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="card p-5 mb-4 bg-white">
+                    <h3 class="fw-bold mb-4"><i class="fas fa-bullseye text-primary me-2"></i>Nuestra Misión</h3>
+                    <p class="text-muted fs-5">Brindar un espacio centralizado y profesional donde los administradores puedan gestionar sus grupos de WhatsApp, conectar a creadores de contenido con su audiencia, compartir recursos multimedia de calidad y fomentar la participación activa a través de rankings y encuestas.</p>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-4">
+                        <div class="card p-4 h-100 bg-white">
+                            <div class="text-primary fs-3 mb-3"><i class="fab fa-whatsapp"></i></div>
+                            <h5 class="fw-bold">Gestión de Grupos</h5>
+                            <p class="text-muted small">Acceso directo a los grupos oficiales de WhatsApp y avisos importantes de la comunidad.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card p-4 h-100 bg-white">
+                            <div class="text-success fs-3 mb-3"><i class="fas fa-photo-video"></i></div>
+                            <h5 class="fw-bold">Chat Multimedia</h5>
+                            <p class="text-muted small">Comparte e interactúa en tiempo real con imágenes, videos, música y documentos.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card p-4 h-100 bg-white">
+                            <div class="text-warning fs-3 mb-3"><i class="fas fa-trophy"></i></div>
+                            <h5 class="fw-bold">Ranking y Aportes</h5>
+                            <p class="text-muted small">Reconocimiento constante para los miembros que más valor aportan a la comunidad.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-white text-center py-4 mt-5">
+        <div class="container">
+            <p class="mb-0">&copy; 2026 ComunidadPro. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -279,6 +279,10 @@ def ranking_comunidad():
     conn.close()
     return render_template('community_ranking.html', usuario=get_current_user(), miembros=miembros)
 
+@app.route('/about')
+def about():
+    return render_template('community_about.html', usuario=get_current_user())
+
 @app.route('/recursos')
 def recursos():
     conn = sqlite3.connect(DB_PATH)

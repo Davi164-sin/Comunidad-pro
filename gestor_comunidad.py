@@ -1065,6 +1065,37 @@ def almacenamiento_eliminar(archivo_id):
     conn.close()
     return redirect(url_for('almacenamiento_vista'))
 
+@app.route('/health')
+def health_check():
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("SELECT 1")
+        conn.close()
+        return jsonify({"status": "ok", "database": "connected"}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.cli.command("init-db")
+def init_db_command():
+    """Inicializa la base de datos de la comunidad."""
+    init_db()
+    print("Base de datos inicializada correctamente.")
+
+@app.cli.command("db-stats")
+def db_stats_command():
+    """Muestra estadísticas del sistema."""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT COUNT(*) FROM usuarios")
+    users = c.fetchone()[0]
+    c.execute("SELECT COUNT(*) FROM archivos_almacenamiento")
+    files = c.fetchone()[0]
+    conn.close()
+    print(f"--- Estadísticas ComunidadPro ---")
+    print(f"Usuarios registrados: {users}")
+    print(f"Archivos almacenados: {files}")
+
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     debug = os.environ.get("DEBUG", "False").lower() == "true"

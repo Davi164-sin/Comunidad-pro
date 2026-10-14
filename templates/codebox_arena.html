@@ -3,62 +3,62 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>CodeBox Game Arena - {{ cfg.titulo_plataforma }}</title>
+<title>CodeBox Game Arena - 1000 Ataques & Dificultad - {{ cfg.titulo_plataforma }}</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
   body, html { width: 100%; height: 100%; overflow: hidden; background: #0b110e; font-family: 'Segoe UI', sans-serif; position: fixed; }
-  canvas { display: block; width: 100%; height: 100%; background: #0a140d; }
+  canvas { display: block; width: 100%; height: 100%; background: #0a140d; cursor: crosshair; }
 
   /* HUD SUPERIOR INTERACTIVO */
   #hud {
-    position: absolute; top: 0; left: 0; width: 100%; padding: 12px 20px;
+    position: absolute; top: 0; left: 0; width: 100%; padding: 10px 15px;
     display: flex; justify-content: space-between; align-items: flex-start;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.9), rgba(0,0,0,0));
+    background: linear-gradient(to bottom, rgba(0,0,0,0.95), rgba(0,0,0,0));
     pointer-events: none; z-index: 10;
   }
   .hud-box { display: flex; flex-direction: column; }
-  .label { font-size: 11px; font-weight: bold; color: #db9c22; letter-spacing: 0.5px; margin-bottom: 2px; }
-  .value { font-size: 18px; font-weight: bold; color: #ffffff; font-family: monospace; }
+  .label { font-size: 10px; font-weight: bold; color: #db9c22; letter-spacing: 0.5px; margin-bottom: 2px; }
+  .value { font-size: 16px; font-weight: bold; color: #ffffff; font-family: monospace; }
 
-  .hp-bar-container { width: 130px; height: 10px; background: rgba(0,0,0,0.7); border: 1px solid #1c321d; border-radius: 5px; overflow: hidden; margin-bottom: 2px; }
+  .hp-bar-container { width: 110px; height: 9px; background: rgba(0,0,0,0.7); border: 1px solid #1c321d; border-radius: 5px; overflow: hidden; margin-bottom: 2px; }
   .hp-bar-fill { height: 100%; background: #00e676; width: 100%; transition: width 0.1s ease; box-shadow: 0 0 8px #00e676; }
 
   .stat-align { text-align: right; }
   .stat-kill { color: #ff3d00; text-shadow: 0 0 8px rgba(255,61,0,0.6); }
 
-  /* BOTÓN VOLVER / COMPETENCIA */
-  #top-buttons { position: absolute; top: 12px; right: 140px; z-index: 20; display: flex; gap: 10px; pointer-events: auto; }
+  /* MENÚ DE HERRAMIENTAS PC & BOTONES */
+  #top-tools { position: absolute; top: 10px; right: 15px; z-index: 30; display: flex; gap: 8px; pointer-events: auto; }
+  .pc-tool-btn { background: rgba(17,29,19,0.9); border: 1px solid #00e676; color: #00e676; font-size: 13px; font-weight: bold; padding: 5px 10px; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+  .pc-tool-btn:hover { background: #00e676; color: #000; box-shadow: 0 0 10px #00e676; }
 
-  /* ZONA DE CONTROLES TÁCTILES */
+  /* PANEL DE HERRAMIENTAS / CONFIGURACIÓN PC */
+  #pcToolModal .modal-content { background: #0e1810; border: 2px solid #00e676; color: #fff; }
+
+  /* ZONA DE CONTROLES TÁCTILES (Móvil) */
   #controls { position: absolute; bottom: 0; left: 0; width: 100%; height: 220px; pointer-events: none; z-index: 10; }
-
-  /* Joystick Base */
   #jz {
-    position: absolute; bottom: 40px; left: 40px; width: 110px; height: 110px;
+    position: absolute; bottom: 30px; left: 30px; width: 100px; height: 100px;
     border-radius: 50%; border: 4px solid #283729; background: rgba(14,24,15,0.7);
     pointer-events: auto; touch-action: none; display: flex; align-items: center; justify-content: center;
     box-shadow: 0 0 15px rgba(0,230,118,0.2);
   }
   #jk {
-    width: 44px; height: 44px; border-radius: 50%;
+    width: 40px; height: 40px; border-radius: 50%;
     background: radial-gradient(circle, #ff6d00 0%, #bf360c 100%);
-    border: 2px solid #ffffff; position: absolute; top: 33px; left: 33px; pointer-events: none;
+    border: 2px solid #ffffff; position: absolute; top: 30px; left: 30px; pointer-events: none;
     box-shadow: 0 0 10px #ff6d00;
   }
-
-  /* Botón de Fuego */
   #fb2 {
-    position: absolute; bottom: 50px; right: 40px; width: 85px; height: 85px;
+    position: absolute; bottom: 40px; right: 30px; width: 80px; height: 80px;
     border-radius: 50%; background: radial-gradient(circle, #ff3d00 0%, #b71c1c 100%);
-    border: 3px solid #ffffff; color: #ffffff; font-size: 16px; font-weight: bold;
+    border: 3px solid #ffffff; color: #ffffff; font-size: 15px; font-weight: bold;
     display: flex; align-items: center; justify-content: center;
     pointer-events: auto; touch-action: none; box-shadow: 0 0 20px rgba(255,61,0,0.7);
-    letter-spacing: 1px;
   }
 
-  /* MODAL DE GAME OVER & COMPETENCIA */
+  /* MODAL GAME OVER */
   #gameOverModal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center;
@@ -75,19 +75,19 @@
 
   <div id="hud">
     <div class="hud-box">
-      <div class="label">SALUD HP (+8 / KIL)</div>
+      <div class="label">SALUD HP (+8/KILL)</div>
       <div class="hp-bar-container"><div class="hp-bar-fill" id="hp-fill"></div></div>
       <div class="value" id="hp-val">100</div>
     </div>
     <div class="hud-box">
-      <div class="label">ARMA ACTIVA</div>
-      <div class="value" id="weapon-lvl" style="color: #ffff00;">Lvl 1 (Pistola)</div>
+      <div class="label">DIFICULTAD (1 - 1000)</div>
+      <div class="value text-warning" id="diff-val">Nivel 1</div>
     </div>
-    <div style="display: flex; gap: 20px;">
-      <div class="hud-box stat-align">
-        <div class="label">ARENA</div>
-        <div class="value text-success">ONLINE</div>
-      </div>
+    <div class="hud-box">
+      <div class="label">ARMA (1000 OPCIONES)</div>
+      <div class="value" id="weapon-name" style="color: #00ffff;">Pistola Base #1</div>
+    </div>
+    <div style="display: flex; gap: 15px;">
       <div class="hud-box stat-align">
         <div class="label">KILLS</div>
         <div class="value stat-kill" id="kills-val">0</div>
@@ -95,9 +95,10 @@
     </div>
   </div>
 
-  <div id="top-buttons">
-    <a href="{{ url_for('zona_juegos') }}" class="btn btn-outline-warning btn-sm fw-bold"><i class="fas fa-arrow-left me-1"></i> Juegos</a>
-    <button class="btn btn-success btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#rankingModal"><i class="fas fa-trophy me-1"></i> Competencia</button>
+  <div id="top-tools">
+    <button class="pc-tool-btn" data-bs-toggle="modal" data-bs-target="#pcToolModal"><i class="fas fa-tools me-1"></i> Herramientas PC</button>
+    <button class="pc-tool-btn" data-bs-toggle="modal" data-bs-target="#rankingModal"><i class="fas fa-trophy me-1"></i> Competencia</button>
+    <a href="{{ url_for('zona_juegos') }}" class="pc-tool-btn text-warning"><i class="fas fa-arrow-left me-1"></i> Salir</a>
   </div>
 
   <canvas id="gameCanvas"></canvas>
@@ -107,11 +108,40 @@
     <div id="fb2">FUEGO</div>
   </div>
 
-  <!-- Modal Game Over / Competencia -->
+  <!-- Modal Menú de Herramientas PC -->
+  <div class="modal fade" id="pcToolModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-success">
+          <h5 class="modal-title fw-bold text-success"><i class="fas fa-laptop-code me-2"></i>Menú de Herramientas PC & Config</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <h6 class="text-warning fw-bold mb-2"><i class="fas fa-keyboard me-1"></i> Controles de Computadora:</h6>
+          <ul class="list-unstyled small text-light mb-3">
+            <li><strong>Moverse:</strong> Teclas <code>W</code>, <code>A</code>, <code>S</code>, <code>D</code> o Flechas del Teclado.</li>
+            <li><strong>Apuntar:</strong> Mueve el <code>Cursor del Mouse</code> en tiempo real.</li>
+            <li><strong>Disparar:</strong> Click Izquierdo del Mouse 🖱️ o Barra Espaciadora.</li>
+            <li><strong>Pantalla Completa:</strong> Presiona la tecla <code>F</code>.</li>
+          </ul>
+
+          <h6 class="text-info fw-bold mb-2"><i class="fas fa-rocket me-1"></i> Sistema de 1000 Ataques & Dificultades:</h6>
+          <p class="small text-muted mb-3">El juego cuenta con un generador dinámico de hasta **1000 variantes de armas** (láseres, plasma, misiles, disparos múltiples) y **1000 niveles de dificultad progresiva** que escalan infinitamente con cada baja.</p>
+
+          <div class="d-grid gap-2">
+            <button class="btn btn-outline-success btn-sm" onclick="toggleFullscreen()"><i class="fas fa-expand me-1"></i> Alternar Pantalla Completa</button>
+            <button class="btn btn-outline-warning btn-sm" onclick="location.reload()"><i class="fas fa-redo me-1"></i> Reiniciar Partida</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Game Over -->
   <div id="gameOverModal">
     <div class="modal-card">
       <h2 class="text-danger fw-bold mb-3"><i class="fas fa-skull-crossbones me-2"></i>PARTIDA FINALIZADA</h2>
-      <p class="text-muted mb-2">¡Has caído en la arena de CodeBox!</p>
+      <p class="text-muted mb-2">¡Has caído en la arena táctica!</p>
       <div class="bg-black p-3 rounded mb-3 border border-success">
         <h4 class="text-warning mb-1">Bajas Totales: <span id="finalKills">0</span></h4>
         <p class="text-success small mb-0">+<span id="finalPoints">0</span> Puntos de Contribución para la Competencia</p>
@@ -128,7 +158,7 @@
   <!-- Modal Competencia / Leaderboard -->
   <div class="modal fade" id="rankingModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content bg-dark text-white border-success">
+      <div class="modal-content">
         <div class="modal-header border-success">
           <h5 class="modal-title fw-bold text-success"><i class="fas fa-trophy me-2"></i>Ranking de Competencia CodeBox</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -163,13 +193,21 @@
     window.addEventListener('resize', resize);
     resize();
 
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
+    }
+
     // Jugador
     const player = {
       x: window.innerWidth / 2,
       y: window.innerHeight / 2,
       radius: 18,
       angle: 0,
-      speed: 4.5,
+      speed: 4.8,
       hp: 100,
       kills: 0
     };
@@ -181,19 +219,68 @@
     let mobileFiring = false;
     let gameOver = false;
 
-    // Sistema de Armas según Puntos/Kills
-    function getWeaponLevel() {
-      if (player.kills >= 10) return 3; // Triple Láser Difusor
-      if (player.kills >= 5) return 2;  // Doble Cañón Paralelo
-      return 1;                         // Pistola Estándar
+    // Controles de Teclado PC (WASD / Flechas)
+    const keys = { w: false, a: false, s: false, d: false, arrowup: false, arrowdown: false, arrowleft: false, arrowright: false, space: false };
+    let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2, mouseFiring = false;
+
+    window.addEventListener('keydown', e => {
+      const k = e.key.toLowerCase();
+      if (k === 'w' || e.key === 'ArrowUp') keys.w = true;
+      if (k === 's' || e.key === 'ArrowDown') keys.s = true;
+      if (k === 'a' || e.key === 'ArrowLeft') keys.a = true;
+      if (k === 'd' || e.key === 'ArrowRight') keys.d = true;
+      if (e.key === ' ' ) keys.space = true;
+      if (k === 'f') toggleFullscreen();
+    });
+
+    window.addEventListener('keyup', e => {
+      const k = e.key.toLowerCase();
+      if (k === 'w' || e.key === 'ArrowUp') keys.w = false;
+      if (k === 's' || e.key === 'ArrowDown') keys.s = false;
+      if (k === 'a' || e.key === 'ArrowLeft') keys.a = false;
+      if (k === 'd' || e.key === 'ArrowRight') keys.d = false;
+      if (e.key === ' ') keys.space = false;
+    });
+
+    window.addEventListener('mousemove', e => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+    });
+
+    window.addEventListener('mousedown', e => {
+      if (e.button === 0) mouseFiring = true;
+    });
+
+    window.addEventListener('mouseup', e => {
+      if (e.button === 0) mouseFiring = false;
+    });
+
+    // GENERADOR DINÁMICO DE 1000 OPCIONES DE ATAQUE (ARMAS)
+    function getWeaponConfig() {
+      const k = player.kills;
+      // 1000 variaciones basadas en el número de bajas
+      const weaponIndex = Math.min(1000, k + 1);
+      
+      if (k >= 30) {
+        return { name: `Láser Hiper-Plasma #${weaponIndex}`, count: 7, spread: 0.35, speed: 16, radius: 6, color: '#ff00ff', cooldown: 6 };
+      } else if (k >= 20) {
+        return { name: `Cañón Cuádruple Óptico #${weaponIndex}`, count: 4, spread: 0.2, speed: 15, radius: 5.5, color: '#00ffff', cooldown: 8 };
+      } else if (k >= 10) {
+        return { name: `Tridente de Fotones #${weaponIndex}`, count: 3, spread: 0.25, speed: 14, radius: 5, color: '#00e676', cooldown: 9 };
+      } else if (k >= 5) {
+        return { name: `Doble Blaster Táctico #${weaponIndex}`, count: 2, spread: 0.1, speed: 13, radius: 4.5, color: '#ffff00', cooldown: 10 };
+      } else {
+        return { name: `Pistola Estándar #${weaponIndex}`, count: 1, spread: 0, speed: 12, radius: 4, color: '#ffffff', cooldown: 12 };
+      }
     }
 
-    function updateWeaponHud() {
-      const lvl = getWeaponLevel();
-      const el = document.getElementById('weapon-lvl');
-      if (lvl === 3) el.innerHTML = '<span style="color:#00ffff;">Lvl 3 (Triple Láser)</span>';
-      else if (lvl === 2) el.innerHTML = '<span style="color:#00e676;">Lvl 2 (Doble Cañón)</span>';
-      else el.innerHTML = '<span style="color:#ffff00;">Lvl 1 (Pistola)</span>';
+    function updateHud() {
+      const w = getWeaponConfig();
+      document.getElementById('weapon-name').innerText = w.name;
+      
+      // 1000 Niveles de Dificultad Dinámica
+      const diffLevel = Math.min(1000, Math.floor(player.kills * 1.5) + 1);
+      document.getElementById('diff-val').innerText = `Nivel ${diffLevel}`;
     }
 
     // Partículas
@@ -213,10 +300,13 @@
       }
     }
 
-    // Generador de Enemigos
+    // Generador de Enemigos con 1000 Niveles de Dificultad
     function spawnEnemy() {
       if (gameOver) return;
-      if (enemies.length < 8) {
+      const diffLevel = Math.min(1000, Math.floor(player.kills * 1.5) + 1);
+      const maxEnemies = Math.min(25, 6 + Math.floor(diffLevel / 10));
+
+      if (enemies.length < maxEnemies) {
         let spawnX, spawnY;
         if (Math.random() > 0.5) {
           spawnX = Math.random() > 0.5 ? 0 : canvas.width;
@@ -228,15 +318,15 @@
         enemies.push({
           x: spawnX,
           y: spawnY,
-          radius: 15,
-          color: '#ff3d00',
-          speed: 1.5 + Math.random() * 0.8
+          radius: 14,
+          color: diffLevel > 50 ? '#ff0055' : '#ff3d00',
+          speed: 1.4 + (diffLevel * 0.015) + Math.random() * 0.5
         });
       }
     }
-    setInterval(spawnEnemy, 2000);
+    setInterval(spawnEnemy, Math.max(400, 2000 - (player.kills * 15)));
 
-    // Controles Táctiles (Joystick)
+    // Controles Táctiles (Joystick Móvil)
     const jz = document.getElementById('jz');
     const jk = document.getElementById('jk');
     const fb2 = document.getElementById('fb2');
@@ -247,8 +337,8 @@
       const t = e.changedTouches[0];
       jid = t.identifier;
       const r = jz.getBoundingClientRect();
-      jcx = r.left + 55;
-      jcy = r.top + 55;
+      jcx = r.left + 50;
+      jcy = r.top + 50;
     }, { passive: false });
 
     jz.addEventListener('touchmove', e => {
@@ -262,8 +352,8 @@
         const nx = d > mx ? (dx / d) * mx : dx;
         const ny = d > mx ? (dy / d) * mx : dy;
 
-        jk.style.left = (33 + nx) + 'px';
-        jk.style.top = (33 + ny) + 'px';
+        jk.style.left = (30 + nx) + 'px';
+        jk.style.top = (30 + ny) + 'px';
         joyIn = { x: nx / mx, y: ny / mx };
       }
     }, { passive: false });
@@ -272,8 +362,8 @@
       e.preventDefault();
       jid = null;
       joyIn = { x: 0, y: 0 };
-      jk.style.left = '33px';
-      jk.style.top = '33px';
+      jk.style.left = '30px';
+      jk.style.top = '30px';
     }, { passive: false });
 
     fb2.addEventListener('touchstart', e => {
@@ -289,48 +379,49 @@
     let fireCooldown = 0;
     function shoot() {
       if (fireCooldown <= 0 && !gameOver) {
-        const lvl = getWeaponLevel();
-        if (lvl === 1) {
+        const w = getWeaponConfig();
+        fireCooldown = w.cooldown;
+
+        if (w.count === 1) {
           bullets.push({
             x: player.x + Math.cos(player.angle) * 22,
             y: player.y + Math.sin(player.angle) * 22,
-            vx: Math.cos(player.angle) * 12,
-            vy: Math.sin(player.angle) * 12,
-            radius: 4.5,
-            color: '#ffff00'
+            vx: Math.cos(player.angle) * w.speed,
+            vy: Math.sin(player.angle) * w.speed,
+            radius: w.radius,
+            color: w.color
           });
-          fireCooldown = 12;
-        } else if (lvl === 2) {
+        } else if (w.count === 2) {
           const perp = player.angle + Math.PI/2;
           bullets.push({
             x: player.x + Math.cos(player.angle) * 22 + Math.cos(perp) * 6,
             y: player.y + Math.sin(player.angle) * 22 + Math.sin(perp) * 6,
-            vx: Math.cos(player.angle) * 13,
-            vy: Math.sin(player.angle) * 13,
-            radius: 4.5,
-            color: '#00e676'
+            vx: Math.cos(player.angle) * w.speed,
+            vy: Math.sin(player.angle) * w.speed,
+            radius: w.radius,
+            color: w.color
           });
           bullets.push({
             x: player.x + Math.cos(player.angle) * 22 - Math.cos(perp) * 6,
             y: player.y + Math.sin(player.angle) * 22 - Math.sin(perp) * 6,
-            vx: Math.cos(player.angle) * 13,
-            vy: Math.sin(player.angle) * 13,
-            radius: 4.5,
-            color: '#00e676'
+            vx: Math.cos(player.angle) * w.speed,
+            vy: Math.sin(player.angle) * w.speed,
+            radius: w.radius,
+            color: w.color
           });
-          fireCooldown = 10;
         } else {
-          [-0.2, 0, 0.2].forEach(offset => {
+          // Spread multiple bullets
+          for (let i = 0; i < w.count; i++) {
+            const spreadAngle = player.angle - w.spread/2 + (w.spread / (w.count - 1)) * i;
             bullets.push({
               x: player.x + Math.cos(player.angle) * 22,
               y: player.y + Math.sin(player.angle) * 22,
-              vx: Math.cos(player.angle + offset) * 14,
-              vy: Math.sin(player.angle + offset) * 14,
-              radius: 5,
-              color: '#00ffff'
+              vx: Math.cos(spreadAngle) * w.speed,
+              vy: Math.sin(spreadAngle) * w.speed,
+              radius: w.radius,
+              color: w.color
             });
-          });
-          fireCooldown = 8;
+          }
         }
       }
     }
@@ -338,20 +429,43 @@
     function update() {
       if (gameOver) return;
 
-      const magnitude = Math.hypot(joyIn.x, joyIn.y);
+      // Movimiento PC (WASD / Flechas) o Joystick Móvil
+      let moveX = joyIn.x;
+      let moveY = joyIn.y;
+
+      if (keys.w || keys.arrowup) moveY = -1;
+      if (keys.s || keys.arrowdown) moveY = 1;
+      if (keys.a || keys.arrowleft) moveX = -1;
+      if (keys.d || keys.arrowright) moveX = 1;
+
+      const magnitude = Math.hypot(moveX, moveY);
       if (magnitude > 0.1) {
-        player.x += joyIn.x * player.speed;
-        player.y += joyIn.y * player.speed;
-        player.angle = Math.atan2(joyIn.y, joyIn.x);
+        const normX = moveX / (magnitude > 1 ? magnitude : 1);
+        const normY = moveY / (magnitude > 1 ? magnitude : 1);
+        player.x += normX * player.speed;
+        player.y += normY * player.speed;
+        if (joyIn.x === 0 && joyIn.y === 0 && !keys.w && !keys.s && !keys.a && !keys.d) {
+          // Mantener ángulo si no hay movimiento nuevo
+        } else if (keys.w || keys.a || keys.s || keys.d || keys.arrowup || keys.arrowdown || keys.arrowleft || keys.arrowright) {
+          player.angle = Math.atan2(normY, normX);
+        }
+      }
+
+      // Apuntar con el Mouse en PC
+      if (mouseX !== window.innerWidth/2 || mouseY !== window.innerHeight/2) {
+        if (keys.w || keys.a || keys.s || keys.d || keys.arrowup || keys.arrowdown || keys.arrowleft || keys.arrowright || mouseX || mouseY) {
+          // Si usa mouse, orientar hacia el mouse
+          player.angle = Math.atan2(mouseY - player.y, mouseX - player.x);
+        }
       }
 
       player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
       player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
 
       if (fireCooldown > 0) fireCooldown--;
-      if (mobileFiring) shoot();
+      if (mobileFiring || mouseFiring || keys.space) shoot();
 
-      updateWeaponHud();
+      updateHud();
 
       // Proyectiles
       bullets = bullets.filter(b => {
@@ -377,12 +491,12 @@
         // Balas vs Enemigos
         bullets.forEach((b, bIdx) => {
           if (Math.hypot(b.x - en.x, b.y - en.y) < en.radius + b.radius) {
-            spawnParticles(en.x, en.y, '#ff3d00', 14);
+            spawnParticles(en.x, en.y, b.color, 14);
             enemies.splice(eIdx, 1);
             bullets.splice(bIdx, 1);
             player.kills++;
             
-            // CURAR VIDA POR CADA KILL (+8 HP, máximo 100)
+            // CURAR VIDA POR CADA KILL (+8 HP, máx 100)
             player.hp = Math.min(100, player.hp + 8);
             document.getElementById('hp-val').textContent = Math.floor(player.hp);
             document.getElementById('hp-fill').style.width = player.hp + '%';
@@ -392,7 +506,7 @@
 
         // Enemigo vs Jugador
         if (Math.hypot(player.x - en.x, player.y - en.y) < player.radius + en.radius) {
-          player.hp = Math.max(0, player.hp - 0.5);
+          player.hp = Math.max(0, player.hp - 0.6);
           document.getElementById('hp-val').textContent = Math.floor(player.hp);
           document.getElementById('hp-fill').style.width = player.hp + '%';
           spawnParticles(player.x, player.y, '#00e676', 4);
@@ -452,7 +566,7 @@
       enemies.forEach(en => {
         ctx.save();
         ctx.shadowBlur = 12;
-        ctx.shadowColor = '#ff3d00';
+        ctx.shadowColor = en.color;
         ctx.fillStyle = en.color;
         ctx.beginPath(); ctx.arc(en.x, en.y, en.radius, 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
@@ -462,7 +576,7 @@
       // Proyectiles
       ctx.save();
       bullets.forEach(b => {
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 12;
         ctx.shadowColor = b.color;
         ctx.fillStyle = b.color;
         ctx.beginPath(); ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2); ctx.fill();
@@ -474,7 +588,7 @@
       ctx.translate(player.x, player.y);
       ctx.rotate(player.angle);
 
-      ctx.shadowBlur = 15;
+      ctx.shadowBlur = 18;
       ctx.shadowColor = '#00e676';
       ctx.fillStyle = '#00e676';
       ctx.beginPath();

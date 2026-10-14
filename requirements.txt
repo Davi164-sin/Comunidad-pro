@@ -4,5 +4,6 @@ werkzeug
 google-generativeai
 numpy
 python-dotenv
-gevent
+eventlet
+packaging
 gunicorn

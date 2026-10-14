@@ -1210,6 +1210,39 @@ def juegos_ganar_puntos():
     crear_notificacion(user['id'], "Zona de Juegos", f"¡Has ganado {puntos} puntos de contribución jugando en la plataforma!")
     return jsonify({"status": "success", "puntos": puntos})
 
+@app.route('/juego-arena')
+def juego_arena():
+    user = get_current_user()
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute("SELECT id, nombre, puntos_contribucion FROM usuarios ORDER BY puntos_contribucion DESC LIMIT 10")
+    top_jugadores = c.fetchall()
+    conn.close()
+    return render_template('codebox_arena.html', usuario=user, top_jugadores=top_jugadores)
+
+@app.route('/juego-arena/guardar_score', methods=['POST'])
+def juego_arena_guardar_score():
+    user = get_current_user()
+    if not user:
+        return jsonify({"status": "error", "message": "No autenticado"}), 401
+    
+    data = request.json
+    kills = int(data.get('kills', 0))
+    puntos_ganados = kills * 2
+    
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("UPDATE usuarios SET puntos_contribucion = puntos_contribucion + ? WHERE id = ?", (puntos_ganados, user['id']))
+    conn.commit()
+    
+    c = conn.cursor()
+    c.execute("SELECT puntos_contribucion FROM usuarios WHERE id = ?", (user['id'],))
+    nuevo_total = c.fetchone()[0]
+    conn.close()
+    
+    crear_notificacion(user['id'], "CodeBox Game Arena", f"¡Partida terminada! Has conseguido {kills} bajas y ganado {puntos_ganados} puntos de contribución para la competencia.")
+    return jsonify({"status": "success", "kills": kills, "puntos_ganados": puntos_ganados, "nuevo_total": nuevo_total})
+
 @app.route('/health')
 def health_check():
     try:

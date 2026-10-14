@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CodeBox Game Arena - {{ cfg.titulo_plataforma }}</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+  body, html { width: 100%; height: 100%; overflow: hidden; background: #0b110e; font-family: 'Segoe UI', sans-serif; position: fixed; }
+  canvas { display: block; width: 100%; height: 100%; background: #0a140d; }
+
+  /* HUD SUPERIOR INTERACTIVO */
+  #hud {
+    position: absolute; top: 0; left: 0; width: 100%; padding: 12px 20px;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.9), rgba(0,0,0,0));
+    pointer-events: none; z-index: 10;
+  }
+  .hud-box { display: flex; flex-direction: column; }
+  .label { font-size: 11px; font-weight: bold; color: #db9c22; letter-spacing: 0.5px; margin-bottom: 2px; }
+  .value { font-size: 20px; font-weight: bold; color: #ffffff; font-family: monospace; }
+
+  .hp-bar-container { width: 140px; height: 10px; background: rgba(0,0,0,0.7); border: 1px solid #1c321d; border-radius: 5px; overflow: hidden; margin-bottom: 2px; }
+  .hp-bar-fill { height: 100%; background: #00e676; width: 100%; transition: width 0.1s ease; box-shadow: 0 0 8px #00e676; }
+
+  .zone-bar-container { width: 100px; height: 10px; background: rgba(0,0,0,0.7); border: 1px solid #1c321d; border-radius: 5px; overflow: hidden; }
+  .zone-bar-fill { height: 100%; background: #ff3d00; width: 60%; box-shadow: 0 0 8px #ff3d00; }
+
+  .stat-align { text-align: right; }
+  .stat-kill { color: #ff3d00; text-shadow: 0 0 8px rgba(255,61,0,0.6); }
+
+  /* BOTÓN VOLVER / COMPETENCIA */
+  #top-buttons { position: absolute; top: 12px; right: 140px; z-index: 20; display: flex; gap: 10px; pointer-events: auto; }
+
+  /* ZONA DE CONTROLES TÁCTILES */
+  #controls { position: absolute; bottom: 0; left: 0; width: 100%; height: 220px; pointer-events: none; z-index: 10; }
+
+  /* Joystick Base */
+  #jz {
+    position: absolute; bottom: 40px; left: 40px; width: 110px; height: 110px;
+    border-radius: 50%; border: 4px solid #283729; background: rgba(14,24,15,0.7);
+    pointer-events: auto; touch-action: none; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 15px rgba(0,230,118,0.2);
+  }
+  #jk {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: radial-gradient(circle, #ff6d00 0%, #bf360c 100%);
+    border: 2px solid #ffffff; position: absolute; top: 33px; left: 33px; pointer-events: none;
+    box-shadow: 0 0 10px #ff6d00;
+  }
+
+  /* Botón de Fuego */
+  #fb2 {
+    position: absolute; bottom: 50px; right: 40px; width: 85px; height: 85px;
+    border-radius: 50%; background: radial-gradient(circle, #ff3d00 0%, #b71c1c 100%);
+    border: 3px solid #ffffff; color: #ffffff; font-size: 16px; font-weight: bold;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: auto; touch-action: none; box-shadow: 0 0 20px rgba(255,61,0,0.7);
+    letter-spacing: 1px;
+  }
+
+  /* MODAL DE GAME OVER & COMPETENCIA */
+  #gameOverModal {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center;
+    z-index: 100; backdrop-filter: blur(5px);
+  }
+  .modal-card {
+    background: #111d13; border: 2px solid #00e676; border-radius: 1.5rem;
+    padding: 30px; width: 90%; max-width: 420px; text-align: center; color: white;
+    box-shadow: 0 0 30px rgba(0,230,118,0.4);
+  }
+</style>
+</head>
+<body>
+
+  <div id="hud">
+    <div class="hud-box">
+      <div class="label">SALUD HP</div>
+      <div class="hp-bar-container"><div class="hp-bar-fill" id="hp-fill"></div></div>
+      <div class="value" id="hp-val">100</div>
+    </div>
+    <div class="hud-box" style="align-items: center;">
+      <div class="label">ZONA ELÉCTRICA</div>
+      <div class="zone-bar-container"><div class="zone-bar-fill" id="zone-fill"></div></div>
+    </div>
+    <div style="display: flex; gap: 20px;">
+      <div class="hud-box stat-align">
+        <div class="label">JUGADORES</div>
+        <div class="value">LIVE</div>
+      </div>
+      <div class="hud-box stat-align">
+        <div class="label">KILLS</div>
+        <div class="value stat-kill" id="kills-val">0</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="top-buttons">
+    <a href="{{ url_for('zona_juegos') }}" class="btn btn-outline-warning btn-sm fw-bold"><i class="fas fa-arrow-left me-1"></i> Juegos</a>
+    <button class="btn btn-success btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#rankingModal"><i class="fas fa-trophy me-1"></i> Competencia</button>
+  </div>
+
+  <canvas id="gameCanvas"></canvas>
+
+  <div id="controls">
+    <div id="jz"><div id="jk"></div></div>
+    <div id="fb2">FUEGO</div>
+  </div>
+
+  <!-- Modal Game Over / Competencia -->
+  <div id="gameOverModal">
+    <div class="modal-card">
+      <h2 class="text-danger fw-bold mb-3"><i class="fas fa-skull-crossbones me-2"></i>PARTIDA FINALIZADA</h2>
+      <p class="text-muted mb-2">¡Has caído en la arena de CodeBox!</p>
+      <div class="bg-black p-3 rounded mb-3 border border-success">
+        <h4 class="text-warning mb-1">Bajas Totales: <span id="finalKills">0</span></h4>
+        <p class="text-success small mb-0">+<span id="finalPoints">0</span> Puntos de Contribución para la Competencia</p>
+      </div>
+      {% if usuario %}
+        <button id="btnGuardarScore" class="btn btn-success btn-lg w-100 fw-bold mb-2 shadow" onclick="enviarPuntuacion()">Guardar en el Ranking Global</button>
+      {% else %}
+        <a href="{{ url_for('login') }}" class="btn btn-warning btn-lg w-100 fw-bold mb-2">Inicia sesión para guardar tu récord</a>
+      {% endif %}
+      <button class="btn btn-outline-light btn-sm w-100 mt-2" onclick="location.reload()">Jugar de Nuevo</button>
+    </div>
+  </div>
+
+  <!-- Modal Competencia / Leaderboard -->
+  <div class="modal fade" id="rankingModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content bg-dark text-white border-success">
+        <div class="modal-header border-success">
+          <h5 class="modal-title fw-bold text-success"><i class="fas fa-trophy me-2"></i>Ranking de Competencia CodeBox</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small">Compite contra otros usuarios de la plataforma acumulando bajas en la arena.</p>
+          <div class="list-group">
+            {% for top in top_jugadores %}
+              <div class="list-group-item bg-black text-white d-flex justify-content-between align-items-center border-secondary">
+                <div>
+                  <span class="badge bg-warning text-dark me-2">#{{ loop.index }}</span>
+                  <strong>{{ top.nombre }}</strong>
+                </div>
+                <span class="badge bg-success fs-6">{{ top.puntos_contribucion }} pts</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Jugador con gráficos mejorados
+    const player = {
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2,
+      radius: 18,
+      angle: 0,
+      speed: 4.5,
+      hp: 100,
+      kills: 0
+    };
+
+    let enemies = [];
+    let bullets = [];
+    let particles = [];
+    let joyIn = { x: 0, y: 0 };
+    let mobileFiring = false;
+    let gameOver = false;
+
+    // Sistema de Partículas Avanzado (Mejores Gráficas)
+    function spawnParticles(x, y, color, count = 10) {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 4 + 1;
+        particles.push({
+          x: x, y: y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          radius: Math.random() * 3 + 1,
+          color: color,
+          alpha: 1,
+          decay: Math.random() * 0.03 + 0.015
+        });
+      }
+    }
+
+    // Generador de Enemigos con progresión
+    function spawnEnemy() {
+      if (gameOver) return;
+      if (enemies.length < 8) {
+        let spawnX, spawnY;
+        if (Math.random() > 0.5) {
+          spawnX = Math.random() > 0.5 ? 0 : canvas.width;
+          spawnY = Math.random() * canvas.height;
+        } else {
+          spawnX = Math.random() * canvas.width;
+          spawnY = Math.random() > 0.5 ? 0 : canvas.height;
+        }
+        enemies.push({
+          x: spawnX,
+          y: spawnY,
+          radius: 15,
+          color: '#ff3d00',
+          speed: 1.5 + Math.random() * 0.8
+        });
+      }
+    }
+    setInterval(spawnEnemy, 2000);
+
+    // Controles Táctiles (Joystick)
+    const jz = document.getElementById('jz');
+    const jk = document.getElementById('jk');
+    const fb2 = document.getElementById('fb2');
+    let jcx = 0, jcy = 0, jid = null;
+
+    jz.addEventListener('touchstart', e => {
+      e.preventDefault();
+      const t = e.changedTouches[0];
+      jid = t.identifier;
+      const r = jz.getBoundingClientRect();
+      jcx = r.left + 55;
+      jcy = r.top + 55;
+    }, { passive: false });
+
+    jz.addEventListener('touchmove', e => {
+      e.preventDefault();
+      for (const t of e.changedTouches) {
+        if (t.identifier !== jid) continue;
+        const dx = t.clientX - jcx;
+        const dy = t.clientY - jcy;
+        const d = Math.hypot(dx, dy);
+        const mx = 35;
+        const nx = d > mx ? (dx / d) * mx : dx;
+        const ny = d > mx ? (dy / d) * mx : dy;
+
+        jk.style.left = (33 + nx) + 'px';
+        jk.style.top = (33 + ny) + 'px';
+        joyIn = { x: nx / mx, y: ny / mx };
+      }
+    }, { passive: false });
+
+    jz.addEventListener('touchend', e => {
+      e.preventDefault();
+      jid = null;
+      joyIn = { x: 0, y: 0 };
+      jk.style.left = '33px';
+      jk.style.top = '33px';
+    }, { passive: false });
+
+    fb2.addEventListener('touchstart', e => {
+      e.preventDefault();
+      mobileFiring = true;
+    }, { passive: false });
+
+    fb2.addEventListener('touchend', e => {
+      e.preventDefault();
+      mobileFiring = false;
+    }, { passive: false });
+
+    let fireCooldown = 0;
+    function shoot() {
+      if (fireCooldown <= 0 && !gameOver) {
+        bullets.push({
+          x: player.x + Math.cos(player.angle) * 22,
+          y: player.y + Math.sin(player.angle) * 22,
+          vx: Math.cos(player.angle) * 12,
+          vy: Math.sin(player.angle) * 12,
+          radius: 4.5
+        });
+        fireCooldown = 12;
+      }
+    }
+
+    function update() {
+      if (gameOver) return;
+
+      const magnitude = Math.hypot(joyIn.x, joyIn.y);
+      if (magnitude > 0.1) {
+        player.x += joyIn.x * player.speed;
+        player.y += joyIn.y * player.speed;
+        player.angle = Math.atan2(joyIn.y, joyIn.x);
+      }
+
+      player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
+      player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
+
+      if (fireCooldown > 0) fireCooldown--;
+      if (mobileFiring) shoot();
+
+      // Proyectiles
+      bullets = bullets.filter(b => {
+        b.x += b.vx;
+        b.y += b.vy;
+        return !(b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height);
+      });
+
+      // Partículas
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= p.decay;
+      });
+      particles = particles.filter(p => p.alpha > 0);
+
+      // Enemigos
+      enemies.forEach((en, eIdx) => {
+        const angleToPlayer = Math.atan2(player.y - en.y, player.x - en.x);
+        en.x += Math.cos(angleToPlayer) * en.speed;
+        en.y += Math.sin(angleToPlayer) * en.speed;
+
+        // Balas vs Enemigos
+        bullets.forEach((b, bIdx) => {
+          if (Math.hypot(b.x - en.x, b.y - en.y) < en.radius + b.radius) {
+            spawnParticles(en.x, en.y, '#ff3d00', 14);
+            enemies.splice(eIdx, 1);
+            bullets.splice(bIdx, 1);
+            player.kills++;
+            document.getElementById('kills-val').textContent = player.kills;
+          }
+        });
+
+        // Enemigo vs Jugador
+        if (Math.hypot(player.x - en.x, player.y - en.y) < player.radius + en.radius) {
+          player.hp = Math.max(0, player.hp - 0.5);
+          document.getElementById('hp-val').textContent = Math.floor(player.hp);
+          document.getElementById('hp-fill').style.width = player.hp + '%';
+          spawnParticles(player.x, player.y, '#00e676', 4);
+
+          if (player.hp <= 0 && !gameOver) {
+            triggerGameOver();
+          }
+        }
+      });
+    }
+
+    function triggerGameOver() {
+      gameOver = true;
+      document.getElementById('finalKills').textContent = player.kills;
+      document.getElementById('finalPoints').textContent = player.kills * 2;
+      document.getElementById('gameOverModal').style.display = 'flex';
+    }
+
+    function enviarPuntuacion() {
+      fetch('/juego-arena/guardar_score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kills: player.kills })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if(data.status === 'success') {
+          alert('¡Puntuación guardada con éxito! Has ganado ' + data.puntos_ganados + ' puntos para la competencia.');
+          location.reload();
+        }
+      });
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Rejilla de Fondo Neón
+      ctx.strokeStyle = '#122616';
+      ctx.lineWidth = 1.2;
+      for (let x = 0; x < canvas.width; x += 60) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += 60) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+      }
+
+      // Dibujar Partículas
+      particles.forEach(p => {
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      });
+
+      // Dibujar Enemigos con brillo neón
+      enemies.forEach(en => {
+        ctx.save();
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = '#ff3d00';
+        ctx.fillStyle = en.color;
+        ctx.beginPath(); ctx.arc(en.x, en.y, en.radius, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.restore();
+      });
+
+      // Dibujar Proyectiles con estela luminosa
+      ctx.save();
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = '#ffff00';
+      ctx.fillStyle = '#ffff00';
+      bullets.forEach(b => {
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2); ctx.fill();
+      });
+      ctx.restore();
+
+      // DIBUJAR JUGADOR CON LUZ NEÓN
+      ctx.save();
+      ctx.translate(player.x, player.y);
+      ctx.rotate(player.angle);
+
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = '#00e676';
+      ctx.fillStyle = '#00e676';
+      ctx.beginPath();
+      ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // Cañón
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(10, -5, 14, 10);
+      ctx.restore();
+    }
+
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    loop();
+  </script>
+</body>
+</html>

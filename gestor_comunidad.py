@@ -259,12 +259,50 @@ def init_db():
             ("¡Bienvenido a ComunidadPro!", "Nos alegra tenerte en la comunidad líder de creadores y desarrolladores. Explora los recursos multimedia y chatea en tiempo real."),
             ("Actualización del Sistema", "El sistema de almacenamiento y gestión de recursos está completamente operativo.")
         ]
-        c.executemany("INSERT INTO anuncios (titulo, contenido) VALUES (?, ?)", ejemplos_anuncios)
+        c.executemany("INSERT INTO anuncios (titulo, contenido) VALUES (?, ?)", ejl if 'ejl' in locals() else ejemplos_anuncios)
         conn.commit()
+
+    # Tabla de configuración y personalización de la plataforma
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS configuracion_plataforma (
+            clave TEXT PRIMARY KEY,
+            valor TEXT
+        )
+    ''')
+    configs_default = [
+        ("titulo_plataforma", "ComunidadPro"),
+        ("color_principal", "#667eea"),
+        ("color_secundario", "#764ba2"),
+        ("mensaje_bienvenida", "Únete a nuestros grupos oficiales y descubre talento de creadores independientes."),
+        ("footer_texto", "ComunidadPro - Todos los derechos reservados 2026"),
+        ("modo_juegos_activo", "1")
+    ]
+    for k, v in configs_default:
+        c.execute("INSERT OR IGNORE INTO configuracion_plataforma (clave, valor) VALUES (?, ?)", (k, v))
+    conn.commit()
 
     conn.close()
 
 init_db()
+
+@app.context_processor
+def inject_config():
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute("SELECT clave, valor FROM configuracion_plataforma").fetchall()
+        conn.close()
+        cfg = {row['clave']: row['valor'] for row in rows}
+    except Exception:
+        cfg = {
+            "titulo_plataforma": "ComunidadPro",
+            "color_principal": "#667eea",
+            "color_secundario": "#764ba2",
+            "mensaje_bienvenida": "Únete a nuestros grupos oficiales y descubre talento de creadores independientes.",
+            "footer_texto": "ComunidadPro - Todos los derechos reservados 2026",
+            "modo_juegos_activo": "1"
+        }
+    return dict(cfg=cfg)
 
 def get_current_user():
     if "user_id" in session:
@@ -1092,6 +1130,85 @@ def almacenamiento_eliminar(archivo_id):
 def cine_david():
     user = get_current_user()
     return render_template('cine_david.html', usuario=user)
+
+@app.route('/admin/usuario/<int:uid>/eliminar', methods=['POST'])
+def admin_eliminar_usuario(uid):
+    user = get_current_user()
+    if not user or user['rol'] != 'admin':
+        flash("Acceso no autorizado.", "error")
+        return redirect(url_for('admin_panel'))
+    conn = sqlite3.connect(DB_PATH)
+    if uid == user['id']:
+        flash("No puedes eliminar tu propia cuenta de administrador principal.", "error")
+        conn.close()
+        return redirect(url_for('admin_panel'))
+    conn.execute("DELETE FROM usuarios WHERE id = ?", (uid,))
+    conn.commit()
+    conn.close()
+    flash("Usuario y sus datos asociados eliminados correctamente.", "success")
+    return redirect(url_for('admin_panel'))
+
+@app.route('/admin/personalizar', methods=['POST'])
+def admin_personalizar():
+    user = get_current_user()
+    if not user or user['rol'] not in ['admin', 'moderador']:
+        flash("Acceso no autorizado.", "error")
+        return redirect(url_for('admin_panel'))
+    
+    titulo = request.form.get('titulo_plataforma', 'ComunidadPro')
+    c_principal = request.form.get('color_principal', '#667eea')
+    c_secundario = request.form.get('color_secundario', '#764ba2')
+    mensaje = request.form.get('mensaje_bienvenida', '')
+    footer = request.form.get('footer_texto', '')
+    
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("INSERT OR REPLACE INTO configuracion_plataforma (clave, valor) VALUES ('titulo_plataforma', ?)", (titulo,))
+    conn.execute("INSERT OR REPLACE INTO configuracion_plataforma (clave, valor) VALUES ('color_principal', ?)", (c_principal,))
+    conn.execute("INSERT OR REPLACE INTO configuracion_plataforma (clave, valor) VALUES ('color_secundario', ?)", (c_secundario,))
+    conn.execute("INSERT OR REPLACE INTO configuracion_plataforma (clave, valor) VALUES ('mensaje_bienvenida', ?)", (mensaje,))
+    conn.execute("INSERT OR REPLACE INTO configuracion_plataforma (clave, valor) VALUES ('footer_texto', ?)", (footer,))
+    conn.commit()
+    conn.close()
+    flash("Personalización de la plataforma guardada con éxito.", "success")
+    return redirect(url_for('admin_panel'))
+
+@app.route('/admin/mantenimiento/<string:accion>')
+def admin_mantenimiento(accion):
+    user = get_current_user()
+    if not user or user['rol'] != 'admin':
+        flash("Acceso no autorizado.", "error")
+        return redirect(url_for('admin_panel'))
+    
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    if accion == 'optimizar':
+        c.execute("VACUUM")
+        flash("Base de datos optimizada (VACUUM ejecutado).", "success")
+    elif accion == 'vaciar_chat':
+        c.execute("DELETE FROM chat_comunidad")
+        conn.commit()
+        flash("Historial del chat de la comunidad vaciado.", "success")
+    conn.close()
+    return redirect(url_for('admin_panel'))
+
+@app.route('/juegos')
+def zona_juegos():
+    user = get_current_user()
+    return render_template('community_juegos.html', usuario=user)
+
+@app.route('/juegos/ganar_puntos', methods=['POST'])
+def juegos_ganar_puntos():
+    user = get_current_user()
+    if not user:
+        return jsonify({"status": "error", "message": "No autenticado"}), 401
+    
+    puntos = int(request.json.get('puntos', 5))
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("UPDATE usuarios SET puntos_contribucion = puntos_contribucion + ? WHERE id = ?", (puntos, user['id']))
+    conn.commit()
+    conn.close()
+    crear_notificacion(user['id'], "Zona de Juegos", f"¡Has ganado {puntos} puntos de contribución jugando en la plataforma!")
+    return jsonify({"status": "success", "puntos": puntos})
 
 @app.route('/health')
 def health_check():

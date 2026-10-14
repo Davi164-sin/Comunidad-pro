@@ -1231,17 +1231,21 @@ def juego_arena_guardar_score():
     data = request.json
     kills = int(data.get('kills', 0))
     diff_level = int(data.get('diffLevel', min(1000, int(kills * 1.5) + 1)))
+    challenge_accepted = bool(data.get('challengeAccepted', False))
     
     puntos_base = kills * 2
     bonus_reto = 0
     mensaje_reto = ""
     
-    if diff_level >= 1000:
-        bonus_reto = 10000
-        mensaje_reto = "🏆 ¡IMPRESIONANTE! ¡Alcanzaste el Nivel 1000 y ganaste el reto principal de 10,000 puntos!"
-    elif diff_level >= 785:
-        bonus_reto = 2500
-        mensaje_reto = "⭐ ¡EXCELENTE! ¡Llegaste al Nivel 785 o superior y ganaste el bono de 2,500 puntos!"
+    if challenge_accepted:
+        if diff_level >= 1000:
+            bonus_reto = 10000
+            mensaje_reto = "🏆 ¡IMPRESIONANTE! ¡Aceptaste el reto y alcanzaste el Nivel 1000, ganando 10,000 puntos de bono!"
+        elif diff_level >= 785:
+            bonus_reto = 2500
+            mensaje_reto = "⭐ ¡EXCELENTE! ¡Aceptaste el reto y llegaste al Nivel 785+, ganando 2,500 puntos de bono!"
+        else:
+            mensaje_reto = f"🛡️ Participaste en el reto CodeBox (Nivel {diff_level}). ¡Sigue practicando para alcanzar la meta!"
     
     puntos_ganados = puntos_base + bonus_reto
     
@@ -1263,6 +1267,7 @@ def juego_arena_guardar_score():
         "status": "success", 
         "kills": kills, 
         "diffLevel": diff_level,
+        "challengeAccepted": challenge_accepted,
         "puntos_ganados": puntos_ganados, 
         "mensaje_reto": mensaje_reto,
         "nuevo_total": nuevo_total

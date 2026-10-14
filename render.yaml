@@ -4,8 +4,16 @@ services:
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT gestor_comunidad:app
+    disk:
+      name: comunidad-disk
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.0
       - key: SECRET_KEY
         generateValue: true
+      - key: DB_PATH
+        value: /var/data/community_database.db
+      - key: UPLOAD_FOLDER
+        value: /var/data/uploads

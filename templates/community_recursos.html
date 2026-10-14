@@ -26,6 +26,7 @@
                     <li class="nav-item"><a class="nav-link active" href="{{ url_for('recursos') }}">Recursos</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('ranking_comunidad') }}">Ranking</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('about') }}">Acerca de</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('almacenamiento_vista') }}">Almacenamiento</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('chat_comunidad_vista') }}">Chat</a></li>
                     {% if usuario %}
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard') }}">Panel</a></li>
@@ -71,14 +72,14 @@
                             
                             {% set ext = r.archivo.rsplit('.', 1)[1].lower() if '.' in r.archivo else '' %}
                             {% if r.tipo == 'imagen' or ext in ['png', 'jpg', 'jpeg', 'gif', 'webp'] %}
-                                <img src="{{ url_for('static', filename='uploads/' + r.archivo) }}" class="img-fluid rounded mb-3" style="max-height: 150px; object-fit: cover;">
+                                <img src="{{ url_for('uploaded_file', filename=r.archivo) }}" class="img-fluid rounded mb-3" style="max-height: 150px; object-fit: cover;">
                             {% elif r.tipo == 'video' or ext in ['mp4', 'webm', 'ogg', 'mov', 'mkv', 'avi'] %}
-                                <video controls class="w-100 rounded mb-3" style="max-height: 200px;"><source src="{{ url_for('static', filename='uploads/' + r.archivo) }}"></video>
+                                <video controls class="w-100 rounded mb-3" style="max-height: 200px;"><source src="{{ url_for('uploaded_file', filename=r.archivo) }}"></video>
                             {% elif r.tipo == 'audio' or ext in ['mp3', 'wav', 'm4a', 'aac', 'ogg'] %}
-                                <audio controls class="w-100 mb-3"><source src="{{ url_for('static', filename='uploads/' + r.archivo) }}"></audio>
+                                <audio controls class="w-100 mb-3"><source src="{{ url_for('uploaded_file', filename=r.archivo) }}"></audio>
                             {% endif %}
 
-                            <a href="{{ url_for('static', filename='uploads/' + r.archivo) }}" target="_blank" class="btn btn-outline-success w-100 rounded-pill mt-auto">
+                            <a href="{{ url_for('uploaded_file', filename=r.archivo) }}" target="_blank" class="btn btn-outline-success w-100 rounded-pill mt-auto">
                                 <i class="fas fa-download me-1"></i> Descargar / Ver Archivo
                             </a>
                         </div>

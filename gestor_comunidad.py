@@ -2,7 +2,7 @@ import os
 import sqlite3
 import csv
 import io
-from flask import Flask, render_template, request, redirect, url_for, flash, session, Response, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, Response, jsonify, send_from_directory
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from flask_socketio import SocketIO, emit
@@ -13,8 +13,12 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "community_database.db")
-UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
+UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", os.path.join(BASE_DIR, "static", "uploads"))
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    return send_from_directory(UPLOAD_FOLDER, filename)
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp", "mp4", "webm", "ogg", "mov", "mkv", "avi", "mp3", "wav", "m4a", "aac", "pdf", "zip", "txt"}
 
@@ -197,6 +201,20 @@ def init_db():
             motivo TEXT,
             estado TEXT DEFAULT 'pendiente',
             creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # Tabla de almacenamiento personal de archivos
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS archivos_almacenamiento (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_id INTEGER,
+            nombre_original TEXT NOT NULL,
+            nombre_guardado TEXT NOT NULL,
+            tipo TEXT DEFAULT 'documento',
+            tamano INTEGER DEFAULT 0,
+            creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (usuario_id) REFERENCES usuarios (id) ON DELETE CASCADE
         )
     ''')
 
@@ -944,6 +962,108 @@ def admin_eliminar_recurso(recurso_id):
     conn.close()
     flash("Recurso eliminado.", "success")
     return redirect(url_for('admin_panel'))
+
+# --- MÓDULO DE ALMACENAMIENTO ---
+MAX_STORAGE_QUOTA = 100 * 1024 * 1024 # 100 MB
+
+def get_user_storage_used(usuario_id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT SUM(tamano) FROM archivos_almacenamiento WHERE usuario_id = ?", (usuario_id,))
+    total = c.fetchone()[0]
+    conn.close()
+    return total or 0
+
+@app.route('/almacenamiento')
+def almacenamiento_vista():
+    user = get_current_user()
+    if not user:
+        flash("Debes iniciar sesión para ver tu almacenamiento.", "error")
+        return redirect(url_for('login'))
+    
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute("SELECT * FROM archivos_almacenamiento WHERE usuario_id = ? ORDER BY creado_en DESC", (user['id'],))
+    archivos = [dict(row) for row in c.fetchall()]
+    conn.close()
+    
+    usado = get_user_storage_used(user['id'])
+    return render_template('community_almacenamiento.html', usuario=user, archivos=archivos, usado=usado, quota=MAX_STORAGE_QUOTA)
+
+@app.route('/almacenamiento/subir', methods=['POST'])
+def almacenamiento_subir():
+    user = get_current_user()
+    if not user:
+        flash("Debes iniciar sesión.", "error")
+        return redirect(url_for('login'))
+        
+    if 'archivo' not in request.files:
+        flash("No se seleccionó ningún archivo.", "error")
+        return redirect(url_for('almacenamiento_vista'))
+        
+    f = request.files['archivo']
+    if f and allowed_file(f.filename):
+        nombre_original = secure_filename(f.filename)
+        ext = nombre_original.rsplit('.', 1)[1].lower()
+        nombre_guardado = f"usr_{user['id']}_{os.urandom(4).hex()}_{nombre_original}"
+        
+        f.seek(0, os.SEEK_END)
+        file_size = f.tell()
+        f.seek(0)
+        
+        usado_actual = get_user_storage_used(user['id'])
+        if usado_actual + file_size > MAX_STORAGE_QUOTA:
+            flash("Has superado tu cuota de almacenamiento de 100 MB.", "error")
+            return redirect(url_for('almacenamiento_vista'))
+            
+        file_path = os.path.join(UPLOAD_FOLDER, nombre_guardado)
+        f.save(file_path)
+        
+        tipo = 'documento'
+        if ext in {'png', 'jpg', 'jpeg', 'gif', 'webp'}:
+            tipo = 'imagen'
+        elif ext in {'mp4', 'webm', 'ogg', 'mov', 'mkv', 'avi'}:
+            tipo = 'video'
+        elif ext in {'mp3', 'wav', 'm4a', 'aac', 'ogg'}:
+            tipo = 'audio'
+            
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("INSERT INTO archivos_almacenamiento (usuario_id, nombre_original, nombre_guardado, tipo, tamano) VALUES (?, ?, ?, ?, ?)",
+                  (user['id'], nombre_original, nombre_guardado, tipo, file_size))
+        conn.commit()
+        conn.close()
+        flash("Archivo subido con éxito al almacenamiento.", "success")
+    else:
+        flash("Formato de archivo no permitido.", "error")
+    return redirect(url_for('almacenamiento_vista'))
+
+@app.route('/almacenamiento/<int:archivo_id>/eliminar')
+def almacenamiento_eliminar(archivo_id):
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+        
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute("SELECT * FROM archivos_almacenamiento WHERE id = ? AND usuario_id = ?", (archivo_id, user['id']))
+    archivo = c.fetchone()
+    if archivo:
+        file_path = os.path.join(UPLOAD_FOLDER, archivo['nombre_guardado'])
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except:
+                pass
+        c.execute("DELETE FROM archivos_almacenamiento WHERE id = ?", (archivo_id,))
+        conn.commit()
+        flash("Archivo eliminado del almacenamiento.", "success")
+    else:
+        flash("Archivo no encontrado o sin permisos.", "error")
+    conn.close()
+    return redirect(url_for('almacenamiento_vista'))
 
 if __name__ == '__main__':
     print("Iniciando aplicación con Modo Oscuro, Encuestas, Moderadores y CSV...")

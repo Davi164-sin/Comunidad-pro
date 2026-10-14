@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Almacenamiento - ComunidadPro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .hero { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 50px 0; margin-bottom: 30px; }
+        .card { border: none; border-radius: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{{ url_for('index') }}"><i class="fas fa-users text-primary me-2"></i>ComunidadPro</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('creadores') }}">Creadores</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('recursos') }}">Recursos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('ranking_comunidad') }}">Ranking</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('about') }}">Acerca de</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('chat_comunidad_vista') }}">Chat</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="{{ url_for('almacenamiento_vista') }}">Almacenamiento</a></li>
+                    {% if usuario %}
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard') }}">Panel</a></li>
+                        {% if usuario.rol == 'admin' %}
+                            <li class="nav-item"><a class="nav-link text-warning" href="{{ url_for('admin_panel') }}">Admin</a></li>
+                        {% endif %}
+                        <li class="nav-item"><a class="btn btn-outline-light btn-sm ms-2 mt-1" href="{{ url_for('logout') }}">Salir</a></li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">Iniciar Sesión</a></li>
+                        <li class="nav-item"><a class="btn btn-primary btn-sm ms-2 mt-1" href="{{ url_for('register') }}">Registrarse</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="hero text-center">
+        <div class="container">
+            <h1 class="display-5 fw-bold"><i class="fas fa-cloud-upload-alt me-2"></i>Gestión de Almacenamiento</h1>
+            <p class="lead mt-2">Sube, organiza y administra tus archivos multimedia y documentos en la nube de la comunidad.</p>
+        </div>
+    </div>
+
+    <div class="container mb-5">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Storage Quota Card -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card p-4 bg-white">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h4 class="fw-bold mb-1"><i class="fas fa-hdd text-primary me-2"></i>Tu Espacio de Almacenamiento</h4>
+                            <p class="text-muted mb-3">Límite de cuota: <strong>100 MB</strong> por usuario</p>
+                            
+                            {% set porcentaje = (usado / quota * 100) if quota > 0 else 0 %}
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div class="progress-bar bg-{{ 'danger' if porcentaje > 90 else ('warning' if porcentaje > 70 else 'success') }}" 
+                                     role="progressbar" style="width: {{ porcentaje }}%;" aria-valuenow="{{ porcentaje }}" aria-valuemin="0" aria-valuemax="100">
+                                    {{ "%.2f"|format(usado / 1024 / 1024) }} MB / 100 MB ({{ "%.1f"|format(porcentaje) }}%)
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                            <button class="btn btn-primary btn-lg rounded-pill px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                                <i class="fas fa-upload me-2"></i> Subir Archivo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Files List -->
+        <div class="card p-4 bg-white">
+            <h4 class="fw-bold mb-4"><i class="fas fa-folder-open text-success me-2"></i>Mis Archivos Subidos</h4>
+            
+            {% if archivos %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Nombre del Archivo</th>
+                                <th>Tamaño</th>
+                                <th>Fecha</th>
+                                <th class="text-end">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for a in archivos %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-{{ 'info' if a.tipo == 'imagen' else ('warning' if a.tipo == 'video' else ('success' if a.tipo == 'audio' else 'secondary')) }}">
+                                            {{ a.tipo }}
+                                        </span>
+                                    </td>
+                                    <td class="fw-bold">{{ a.nombre_original }}</td>
+                                    <td>{{ "%.2f"|format(a.tamano / 1024 / 1024) }} MB</td>
+                                    <td><small class="text-muted">{{ a.creado_en }}</small></td>
+                                    <td class="text-end">
+                                        <a href="{{ url_for('uploaded_file', filename=a.nombre_guardado) }}" target="_blank" class="btn btn-outline-primary btn-sm me-1" title="Ver / Descargar">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ url_for('almacenamiento_eliminar', archivo_id=a.id) }}" class="btn btn-outline-danger btn-sm" onclick="return confirm('¿Estás seguro de eliminar este archivo?');" title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-cloud fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Aún no has subido ningún archivo a tu almacenamiento.</h5>
+                    <p class="text-muted small">Haz clic en "Subir Archivo" para comenzar a guardar tus documentos e imágenes.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div class="modal fade" id="uploadModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form action="{{ url_for('almacenamiento_subir') }}" method="POST" enctype="multipart/form-data">
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold"><i class="fas fa-upload text-primary me-2"></i>Subir Nuevo Archivo</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Seleccionar Archivo</label>
+                            <input type="file" name="archivo" class="form-control" required>
+                            <div class="form-text">Formatos permitidos: Imágenes, Videos, Audio, PDF, ZIP (Máx. cuota disponible).</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Subir a la Nube</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

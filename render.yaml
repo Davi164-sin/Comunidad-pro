@@ -4,8 +4,14 @@ services:
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn gestor_comunidad:app --bind 0.0.0.0:$PORT --threads 4
+    disk:
+      name: comunidad-data
+      mountPath: /data
+      sizeGB: 1
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.0
       - key: SECRET_KEY
         generateValue: true
+      - key: DATABASE_PATH
+        value: /data/community_database.db

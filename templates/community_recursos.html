@@ -72,9 +72,9 @@
                             
                             {% set ext = r.archivo.rsplit('.', 1)[1].lower() if '.' in r.archivo else '' %}
                             {% if r.tipo == 'imagen' or ext in ['png', 'jpg', 'jpeg', 'gif', 'webp'] %}
-                                <img src="{{ url_for('uploaded_file', filename=r.archivo) }}" class="img-fluid rounded mb-3" style="max-height: 150px; object-fit: cover;">
+                                <img src="{{ url_for('uploaded_file', filename=r.archivo) }}" class="img-fluid rounded mb-3 w-100" style="height: 180px; object-fit: cover;">
                             {% elif r.tipo == 'video' or ext in ['mp4', 'webm', 'ogg', 'mov', 'mkv', 'avi'] %}
-                                <video controls class="w-100 rounded mb-3" style="max-height: 200px;"><source src="{{ url_for('uploaded_file', filename=r.archivo) }}"></video>
+                                <video controls class="w-100 rounded mb-3 bg-black" style="height: 180px; object-fit: cover;"><source src="{{ url_for('uploaded_file', filename=r.archivo) }}"></video>
                             {% elif r.tipo == 'audio' or ext in ['mp3', 'wav', 'm4a', 'aac', 'ogg'] %}
                                 <audio controls class="w-100 mb-3"><source src="{{ url_for('uploaded_file', filename=r.archivo) }}"></audio>
                             {% endif %}

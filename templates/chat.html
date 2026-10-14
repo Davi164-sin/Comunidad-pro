@@ -1,0 +1,108 @@
+{% extends 'layout.html' %}
+{% block title %}Génesis - Chat{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto flex flex-col" style="height: calc(100vh - 120px)">
+    <div class="mb-4 flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-extrabold text-white flex items-center space-x-2"><span>💬</span><span>Chat en Vivo</span></h1>
+            <p class="text-slate-400 text-xs mt-0.5">Mensajes en tiempo real.</p>
+        </div>
+        <div class="flex items-center space-x-2"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span class="text-emerald-400 text-xs font-bold">En vivo</span></div>
+    </div>
+
+    <div id="chat-box" class="flex-grow bg-slate-950 border border-slate-800 rounded-2xl p-4 overflow-y-auto space-y-4 mb-4">
+        {% for m in mensajes %}
+        {% set msg = m.msg if m.msg is defined else m %}
+        <div data-id="{{ msg['id'] }}">
+            <div class="flex items-start space-x-3 {% if msg['usuario_id'] == usuario['id'] %}flex-row-reverse space-x-reverse{% endif %}">
+                <div class="w-8 h-8 rounded-full {% if m.get('es_admin') or (m.msg and m.msg.get('es_admin')) %}bg-gradient-to-br from-amber-400 to-orange-500{% else %}bg-gradient-to-br from-blue-500 to-emerald-500{% endif %} flex items-center justify-center text-white text-xs font-black shrink-0">
+                    {% if m.get('es_admin') or (m.msg and m.msg.get('es_admin')) %}👑{% else %}{{ msg['usuario_nombre'][0].upper() }}{% endif %}
+                </div>
+                <div class="max-w-xs flex flex-col {% if msg['usuario_id'] == usuario['id'] %}items-end{% endif %}">
+                    {% if m.get('respondiendo_nombre') %}
+                    <div class="bg-slate-800/50 border-l-2 border-blue-500 px-3 py-1 rounded-lg mb-1 text-xs text-slate-400">
+                        <span class="text-blue-400 font-bold">↩ {{ m['respondiendo_nombre'] }}</span>: {{ m['respondiendo_texto'][:40] }}
+                    </div>
+                    {% endif %}
+                    <p class="text-slate-500 text-xs mb-1 flex items-center gap-1">
+                        {{ msg['usuario_nombre'] }}
+                        {% if m.get('es_admin') or (m.msg and m.msg.get('es_admin')) %}<span class="bg-amber-500/15 text-amber-400 text-[9px] px-1.5 py-0.5 rounded-full font-bold border border-amber-500/30">👑 Profesor</span>{% endif %}
+                        · {{ msg['creado_en'][11:16] }}
+                    </p>
+                    {% if msg['mensaje'] %}
+                    <div class="px-4 py-2.5 rounded-2xl text-sm {% if m.get('es_admin') or (m.msg and m.msg.get('es_admin')) %}bg-gradient-to-br from-amber-500/15 to-orange-500/10 text-amber-50 border border-amber-500/30{% elif msg['usuario_id'] == usuario['id'] %}bg-blue-600 text-white rounded-tr-sm{% else %}bg-slate-800 text-slate-200 rounded-tl-sm{% endif %}" style="white-space: pre-wrap;">
+                        {{ msg['mensaje'] }}
+                    </div>
+                    {% endif %}
+                    {% if msg['imagen'] %}
+                    <img src="/static/uploads/{{ msg['imagen'] }}" class="mt-1 rounded-xl max-w-[200px] max-h-48 object-cover border border-slate-700">
+                    {% endif %}
+                    {% if msg['archivo'] %}
+                    <a href="/static/uploads/{{ msg['archivo'] }}" class="mt-1 flex items-center gap-2 bg-slate-800 border border-slate-700 px-3 py-2 rounded-xl text-xs text-blue-400" download>📎 {{ msg['archivo'].split('_',1)[1] if '_' in msg['archivo'] else msg['archivo'] }}</a>
+                    {% endif %}
+                    <div class="flex items-center gap-2 mt-1.5 flex-wrap">
+                        <div class="flex gap-1">
+                            {% for emoji in ['👍','❤️','😂','🔥'] %}
+                            <a href="/chat/reaccionar/{{ msg['id'] }}/{{ emoji }}" class="text-sm hover:scale-125 transition-transform {% if m.get('mi_reaccion') == emoji %}opacity-100{% else %}opacity-40{% endif %}">{{ emoji }}</a>
+                            {% endfor %}
+                        </div>
+                        {% if m.get('reacciones') %}
+                        <span class="text-slate-500 text-xs">{% for tipo, total in m['reacciones'].items() %}{{ tipo }}{{ total }} {% endfor %}</span>
+                        {% endif %}
+                        <button type="button" onclick="responder({{ msg['id'] }}, '{{ msg['usuario_nombre'] }}')" class="text-xs text-slate-500 ml-1">↩</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center text-slate-500 text-sm py-10" id="empty-msg">Sé el primero en escribir 👋</div>
+        {% endfor %}
+    </div>
+
+    <div id="respuesta-preview" class="hidden bg-slate-900 border border-blue-500/30 rounded-xl px-4 py-2 mb-2 flex items-center justify-between">
+        <span class="text-xs text-slate-400">↩ Respondiendo a <span id="respuesta-nombre" class="text-blue-400 font-bold"></span></span>
+        <button type="button" onclick="cancelarRespuesta()" class="text-slate-500 text-xs ml-2">✕</button>
+    </div>
+
+    <form action="/chat/enviar" method="POST" enctype="multipart/form-data" class="space-y-2">
+        <input type="hidden" name="respondiendo_a" id="respondiendo_a" value="">
+        <div class="flex items-center space-x-2">
+            <label class="cursor-pointer text-slate-500 shrink-0">
+                <span class="text-xl">📎</span>
+                <input type="file" name="archivo" class="hidden" accept=".py,.html,.js,.css,.jpg,.jpeg,.png,.gif,.webp">
+            </label>
+            <textarea name="mensaje" id="msg-input" rows="1" class="flex-grow bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 text-sm focus:outline-none focus:border-blue-500 transition placeholder-slate-600 resize-none" placeholder="Escribe un mensaje..."></textarea>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-3 rounded-xl transition shrink-0">→</button>
+        </div>
+    </form>
+</div>
+
+<script>
+const box = document.getElementById('chat-box');
+box.scrollTop = box.scrollHeight;
+let ultimoId = {{ mensajes[-1].msg['id'] if mensajes else 0 }};
+
+function responder(id, nombre) {
+    document.getElementById('respondiendo_a').value = id;
+    document.getElementById('respuesta-nombre').textContent = nombre;
+    document.getElementById('respuesta-preview').classList.remove('hidden');
+    document.getElementById('msg-input').focus();
+}
+function cancelarRespuesta() {
+    document.getElementById('respondiendo_a').value = '';
+    document.getElementById('respuesta-preview').classList.add('hidden');
+}
+
+function cargarNuevos() {
+    fetch('/chat/mensajes?desde=' + ultimoId)
+        .then(r => r.json())
+        .then(msgs => {
+            if (msgs.length > 0) {
+                ultimoId = msgs[msgs.length - 1]['id'];
+            }
+        });
+}
+setInterval(cargarNuevos, 5000);
+</script>
+{% endblock %}
+

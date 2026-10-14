@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat General Multimedia - ComunidadPro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; height: 100vh; display: flex; flex-direction: column; }
+        .chat-container { flex: 1; display: flex; flex-direction: column; max-width: 900px; margin: 20px auto; width: 100%; background: white; border-radius: 1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden; }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 20px; background: #fdfdfd; }
+        .message-bubble { padding: 12px 16px; border-radius: 1rem; margin-bottom: 12px; max-width: 75%; word-break: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .message-incoming { background: #f1f3f5; align-self: flex-start; border-bottom-left-radius: 2px; }
+        .message-outgoing { background: #007bff; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .chat-input-area { padding: 15px; background: white; border-top: 1px solid #dee2e6; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{{ url_for('index') }}"><i class="fas fa-users text-primary me-2"></i>ComunidadPro</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('creadores') }}">Creadores</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('recursos') }}">Recursos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('encuestas_vista') }}">Encuestas</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('ranking_comunidad') }}">Ranking</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="{{ url_for('chat_comunidad_vista') }}">Chat</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard') }}">Panel</a></li>
+                    <li class="nav-item">
+                        <button class="btn btn-outline-light btn-sm ms-2 mt-1" onclick="toggleTheme()" title="Cambiar Tema"><i class="fas fa-moon" id="themeIcon"></i></button>
+                    </li>
+                    <li class="nav-item"><a class="btn btn-outline-light btn-sm ms-2 mt-1" href="{{ url_for('logout') }}">Salir</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container chat-container">
+        <div class="p-3 bg-dark text-white d-flex align-items-center justify-content-between">
+            <h5 class="mb-0"><i class="fas fa-comments text-success me-2"></i>Chat Multimedia de la Comunidad</h5>
+            <span class="badge bg-success">En línea</span>
+        </div>
+
+        <div class="chat-messages d-flex flex-column" id="chatMessages">
+            {% for m in mensajes %}
+                <div class="d-flex flex-column {{ 'align-items-end' if m.usuario_id == usuario.id else 'align-items-start' }} mb-2" id="msg-{{ m.id }}">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <small class="text-muted px-1" style="font-size: 0.75rem;">{{ m.usuario_nombre }} &bull; {{ m.creado_en }}</small>
+                        {% if m.usuario_id == usuario.id or usuario.rol in ['admin', 'moderador'] %}
+                            <button onclick="eliminarMensaje({{ m.id }})" class="btn btn-sm text-danger p-0 border-0 bg-transparent" title="Eliminar mensaje"><i class="fas fa-trash-alt" style="font-size: 0.7rem;"></i></button>
+                        {% endif %}
+                        <button onclick="reportarMensaje({{ m.id }})" class="btn btn-sm text-warning p-0 border-0 bg-transparent" title="Reportar mensaje"><i class="fas fa-flag" style="font-size: 0.7rem;"></i></button>
+                    </div>
+                    <div class="message-bubble {{ 'message-outgoing' if m.usuario_id == usuario.id else 'message-incoming' }}">
+                        {% if m.mensaje %}
+                            <p class="mb-1">{{ m.mensaje }}</p>
+                        {% endif %}
+                        {% if m.archivo %}
+                            {% set ext = m.archivo.rsplit('.', 1)[1].lower() if '.' in m.archivo else '' %}
+                            {% if m.tipo_archivo == 'imagen' or ext in ['png', 'jpg', 'jpeg', 'gif', 'webp'] %}
+                                <img src="{{ m.archivo }}" class="img-fluid rounded mt-2" style="max-height: 200px;">
+                            {% elif m.tipo_archivo == 'video' or ext in ['mp4', 'webm', 'ogg', 'mov', 'mkv', 'avi'] %}
+                                <video controls class="w-100 rounded mt-2" style="max-height: 200px;"><source src="{{ m.archivo }}"></video>
+                            {% elif m.tipo_archivo == 'audio' or ext in ['mp3', 'wav', 'm4a', 'aac', 'ogg'] %}
+                                <audio controls class="w-100 mt-2"><source src="{{ m.archivo }}"></audio>
+                            {% else %}
+                                <a href="{{ m.archivo }}" target="_blank" class="d-block mt-2 text-decoration-underline {{ 'text-white' if m.usuario_id == usuario.id else 'text-primary' }}">
+                                    <i class="fas fa-file-download me-1"></i> Descargar Archivo
+                                </a>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="chat-input-area">
+            <form id="chatForm" class="d-flex gap-2 align-items-center">
+                <label class="btn btn-outline-secondary mb-0" title="Adjuntar imagen, video, audio o documento">
+                    <i class="fas fa-paperclip"></i>
+                    <input type="file" id="archivoInput" class="d-none" accept="image/*,video/mp4,audio/mp3,audio/wav,.pdf,.zip">
+                </label>
+                <input type="text" id="mensajeInput" class="form-control" placeholder="Escribe un mensaje o adjunta multimedia..." autocomplete="off">
+                <button type="submit" class="btn btn-primary px-4"><i class="fas fa-paper-plane"></i></button>
+            </form>
+            <div id="uploadStatus" class="small text-muted mt-1" style="display: none;">Subiendo archivo multimedia...</div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+        const userId = {{ usuario.id }};
+        const userName = "{{ usuario.nombre }}";
+
+        const chatMessages = document.getElementById('chatMessages');
+        const chatForm = document.getElementById('chatForm');
+        const mensajeInput = document.getElementById('mensajeInput');
+        const archivoInput = document.getElementById('archivoInput');
+        const uploadStatus = document.getElementById('uploadStatus');
+
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        chatForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const msg = mensajeInput.value.trim();
+            const file = archivoInput.files[0];
+
+            if (!msg && !file) return;
+
+            let archivoUrl = '';
+            let tipoArchivo = '';
+
+            if (file) {
+                uploadStatus.style.display = 'block';
+                const formData = new FormData();
+                formData.append('archivo', file);
+
+                try {
+                    const res = await fetch('/chat/subir_archivo', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (data.url) {
+                        archivoUrl = data.url;
+                        tipoArchivo = data.tipo;
+                    }
+                } catch (err) {
+                    console.error("Error al subir archivo", err);
+                }
+                uploadStatus.style.display = 'none';
+                archivoInput.value = '';
+            }
+
+            socket.emit('enviar_mensaje', {
+                usuario_id: userId,
+                usuario_nombre: userName,
+                mensaje: msg,
+                archivo: archivoUrl,
+                tipo_archivo: tipoArchivo
+            });
+
+            mensajeInput.value = '';
+        });
+
+        socket.on('nuevo_mensaje', function(data) {
+            const isMe = data.usuario_id === userId;
+            const alignClass = isMe ? 'align-items-end' : 'align-items-start';
+            const bubbleClass = isMe ? 'message-outgoing' : 'message-incoming';
+
+            let mediaHtml = '';
+            if (data.archivo) {
+                const ext = data.archivo.split('.').pop().toLowerCase();
+                if (data.tipo_archivo === 'imagen' || ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) {
+                    mediaHtml = `<img src="${data.archivo}" class="img-fluid rounded mt-2" style="max-height: 200px;">`;
+                } else if (data.tipo_archivo === 'video' || ['mp4', 'webm', 'ogg', 'mov', 'mkv', 'avi'].includes(ext)) {
+                    mediaHtml = `<video controls class="w-100 rounded mt-2" style="max-height: 200px;"><source src="${data.archivo}"></video>`;
+                } else if (data.tipo_archivo === 'audio' || ['mp3', 'wav', 'm4a', 'aac', 'ogg'].includes(ext)) {
+                    mediaHtml = `<audio controls class="w-100 mt-2"><source src="${data.archivo}"></audio>`;
+                } else {
+                    mediaHtml = `<a href="${data.archivo}" target="_blank" class="d-block mt-2 text-decoration-underline ${isMe ? 'text-white' : 'text-primary'}"><i class="fas fa-file-download me-1"></i> Descargar Archivo</a>`;
+                }
+            }
+
+            const div = document.createElement('div');
+            div.className = `d-flex flex-column ${alignClass} mb-2`;
+            div.id = `msg-${data.id}`;
+            div.innerHTML = `
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <small class="text-muted px-1" style="font-size: 0.75rem;">${data.usuario_nombre} &bull; ${data.creado_en}</small>
+                    ${isMe ? `<button onclick="eliminarMensaje(${data.id})" class="btn btn-sm text-danger p-0 border-0 bg-transparent" title="Eliminar mensaje"><i class="fas fa-trash-alt" style="font-size: 0.7rem;"></i></button>` : ''}
+                    <button onclick="reportarMensaje(${data.id})" class="btn btn-sm text-warning p-0 border-0 bg-transparent" title="Reportar mensaje"><i class="fas fa-flag" style="font-size: 0.7rem;"></i></button>
+                </div>
+                <div class="message-bubble ${bubbleClass}">
+                    ${data.mensaje ? `<p class="mb-1">${escapeHtml(data.mensaje)}</p>` : ''}
+                    ${mediaHtml}
+                </div>
+            `;
+            chatMessages.appendChild(div);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        });
+
+        function eliminarMensaje(msgId) {
+            if (confirm("¿Estás seguro de eliminar este mensaje?")) {
+                socket.emit('eliminar_mensaje', {
+                    mensaje_id: msgId,
+                    usuario_id: userId
+                });
+            }
+        }
+
+        function reportarMensaje(msgId) {
+            const motivo = prompt("Indica el motivo del reporte:");
+            if (motivo) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '{{ url_for("reportar_contenido") }}';
+                
+                const t = document.createElement('input');
+                t.type = 'hidden'; t.name = 'tipo'; t.value = 'chat';
+                form.appendChild(t);
+
+                const idInput = document.createElement('input');
+                idInput.type = 'hidden'; idInput.name = 'item_id'; idInput.value = msgId;
+                form.appendChild(idInput);
+
+                const mInput = document.createElement('input');
+                mInput.type = 'hidden'; mInput.name = 'motivo'; mInput.value = motivo;
+                form.appendChild(mInput);
+
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
+        socket.on('mensaje_eliminado', function(data) {
+            const el = document.getElementById(`msg-${data.mensaje_id}`);
+            if (el) el.remove();
+        });
+
+        function escapeHtml(text) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-bs-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-bs-theme', next);
+            localStorage.setItem('theme', next);
+            document.getElementById('themeIcon').className = next === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        }
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-bs-theme', savedTheme);
+        window.addEventListener('DOMContentLoaded', () => {
+            const icon = document.getElementById('themeIcon');
+            if (icon) icon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        });
+    </script></body>
+</html>

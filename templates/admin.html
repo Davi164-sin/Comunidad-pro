@@ -1,0 +1,195 @@
+{% extends 'layout.html' %}
+{% block title %}Génesis - Panel Admin{% endblock %}
+{% block content %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="mb-6 flex items-center justify-between">
+    <div>
+        <h1 class="text-3xl font-extrabold text-white flex items-center space-x-2"><span>🎛️</span><span>Panel de Control</span></h1>
+        <p class="text-slate-400 mt-1">Control total del sistema Génesis.</p>
+    </div>
+    <span class="bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-bold px-3 py-1.5 rounded-full">👑 Admin</span>
+</div>
+
+<div class="flex gap-2 mb-6 flex-wrap">
+    <button onclick="mostrarTab('stats')" id="tab-stats" class="tab-btn px-4 py-2 rounded-xl text-sm font-bold transition">📊 Stats</button>
+    <button onclick="mostrarTab('usuarios')" id="tab-usuarios" class="tab-btn active px-4 py-2 rounded-xl text-sm font-bold transition">👥 Usuarios</button>
+    <button onclick="mostrarTab('config')" id="tab-config" class="tab-btn px-4 py-2 rounded-xl text-sm font-bold transition">⚙️ Config</button>
+    <button onclick="mostrarTab('perfil')" id="tab-perfil" class="tab-btn px-4 py-2 rounded-xl text-sm font-bold transition">👤 Perfil</button>
+    <button onclick="mostrarTab('errores')" id="tab-errores" class="tab-btn px-4 py-2 rounded-xl text-sm font-bold transition">🚨 Errores</button>
+    <button onclick="mostrarTab('mensajes')" id="tab-mensajes" class="tab-btn px-4 py-2 rounded-xl text-sm font-bold transition">🗑️ Publicaciones</button>
+</div>
+
+<!-- STATS -->
+<div id="tab-content-stats" class="hidden space-y-4">
+    <div class="grid grid-cols-2 gap-4">
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5 text-center"><p class="text-3xl font-black text-blue-400" id="stat-activos">...</p><p class="text-slate-400 text-xs mt-1 uppercase">Usuarios activos</p></div>
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5 text-center"><p class="text-3xl font-black text-emerald-400" id="stat-completados">...</p><p class="text-slate-400 text-xs mt-1 uppercase">Desafíos completados</p></div>
+    </div>
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5">
+        <h3 class="text-sm font-bold text-white mb-3">📅 Registros últimos 7 días</h3>
+        <canvas id="grafica-registros" height="120"></canvas>
+    </div>
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5">
+        <h3 class="text-sm font-bold text-white mb-3">💬 Publicaciones últimos 7 días</h3>
+        <canvas id="grafica-mensajes" height="120"></canvas>
+    </div>
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5">
+        <h3 class="text-sm font-bold text-white mb-3">🏆 Top desafíos completados</h3>
+        <div id="top-desafios" class="space-y-2"></div>
+    </div>
+</div>
+
+<!-- USUARIOS -->
+<div id="tab-content-usuarios">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5 text-center"><p class="text-3xl font-black text-white">{{ total_usuarios }}</p><p class="text-slate-400 text-xs mt-1 uppercase">Usuarios</p></div>
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5 text-center"><p class="text-3xl font-black text-amber-400">{{ total_premium }}</p><p class="text-slate-400 text-xs mt-1 uppercase">Premium</p></div>
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5 text-center"><p class="text-3xl font-black text-emerald-400">{{ total_mensajes }}</p><p class="text-slate-400 text-xs mt-1 uppercase">Publicaciones</p></div>
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5 text-center"><p class="text-3xl font-black text-blue-400">{{ total_xp }}</p><p class="text-slate-400 text-xs mt-1 uppercase">XP Total</p></div>
+    </div>
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden">
+        <div class="p-5 border-b border-slate-800"><h2 class="text-lg font-bold text-white">👥 Gestión de Usuarios</h2></div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-900/50 text-slate-400 text-xs uppercase">
+                    <tr><th class="px-4 py-3">Usuario</th><th class="px-4 py-3">Plan</th><th class="px-4 py-3">XP</th><th class="px-4 py-3">Acciones</th></tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800">
+                    {% for u in usuarios %}
+                    <tr class="hover:bg-slate-900/30">
+                        <td class="px-4 py-3 text-white font-bold">{{ u.nombre }}{% if u.es_admin %}<span class="ml-1 text-red-400 text-xs">Admin</span>{% endif %}</td>
+                        <td class="px-4 py-3">{% if u.plan == 'premium' %}<span class="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs px-2 py-0.5 rounded-full font-bold">👑 Premium</span>{% else %}<span class="bg-slate-700 text-slate-400 text-xs px-2 py-0.5 rounded-full">Gratis</span>{% endif %}</td>
+                        <td class="px-4 py-3"><form action="/admin/usuario/{{ u.id }}/puntos" method="POST" class="flex items-center gap-2"><input type="number" name="puntos" value="{{ u.puntos }}" class="w-20 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs"><button type="submit" class="text-blue-400 text-xs font-bold">Guardar</button></form></td>
+                        <td class="px-4 py-3"><div class="flex items-center gap-2">{% if u.plan != 'premium' %}<a href="/admin/usuario/{{ u.id }}/premium" class="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-1 rounded-lg font-bold">+Premium</a>{% else %}<a href="/admin/usuario/{{ u.id }}/gratis" class="text-xs bg-slate-700 text-slate-300 px-2 py-1 rounded-lg">-Gratis</a>{% endif %}<a href="/admin/usuario/{{ u.id }}/eliminar" onclick="return confirm('¿Eliminar a {{ u.nombre }}?')" class="text-xs bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-1 rounded-lg font-bold">🗑 Eliminar</a></div></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- CONFIG -->
+<div id="tab-content-config" class="hidden space-y-4">
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6">
+        <h2 class="text-lg font-bold text-white mb-4">⚙️ Configuración del Sistema</h2>
+        <form action="/admin/config" method="POST" class="space-y-4">
+            <div>
+                <label class="block text-xs text-slate-400 uppercase tracking-wider font-semibold mb-2">Mensaje de bienvenida</label>
+                <input type="text" name="mensaje_bienvenida" value="{{ config.mensaje_bienvenida if config else '¡Bienvenido a Génesis!' }}" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 text-sm focus:outline-none focus:border-blue-500">
+            </div>
+            <div class="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-xl px-4 py-3">
+                <div><p class="text-white font-semibold text-sm">Modo mantenimiento</p><p class="text-slate-500 text-xs">Bloquea el acceso a usuarios no admin</p></div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="modo_mantenimiento" class="sr-only peer" {% if config and config.modo_mantenimiento == '1' %}checked{% endif %}>
+                    <div class="w-11 h-6 bg-slate-700 rounded-full peer peer-checked:bg-blue-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                </label>
+            </div>
+            <div>
+                <label class="block text-xs text-slate-400 uppercase tracking-wider font-semibold mb-2">Máximo de usuarios (0 = sin límite)</label>
+                <input type="number" name="max_usuarios" value="{{ config.max_usuarios if config else '0' }}" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 text-sm focus:outline-none focus:border-blue-500">
+            </div>
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition">Guardar configuración</button>
+        </form>
+    </div>
+</div>
+
+<!-- PERFIL -->
+<div id="tab-content-perfil" class="hidden">
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6">
+        <h2 class="text-lg font-bold text-white mb-4">👤 Personalizar Mi Perfil</h2>
+        <form action="/admin/perfil" method="POST" class="space-y-4">
+            <div>
+                <label class="block text-xs text-slate-400 uppercase tracking-wider font-semibold mb-2">Nombre de usuario</label>
+                <input type="text" name="nombre" value="{{ usuario.nombre }}" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 text-sm focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-xs text-slate-400 uppercase tracking-wider font-semibold mb-2">Nueva contraseña (vacío = no cambiar)</label>
+                <input type="password" name="password" placeholder="••••••••" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 text-sm focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-xs text-slate-400 uppercase tracking-wider font-semibold mb-2">Confirmar nueva contraseña</label>
+                <input type="password" name="password2" placeholder="••••••••" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 text-sm focus:outline-none focus:border-blue-500">
+            </div>
+            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition">Actualizar perfil</button>
+        </form>
+    </div>
+</div>
+
+<!-- ERRORES -->
+<div id="tab-content-errores" class="hidden">
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden">
+        <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+            <h2 class="text-lg font-bold text-white">🚨 Log de Errores</h2>
+            <a href="/admin" class="text-xs text-blue-400 hover:text-blue-300">Actualizar</a>
+        </div>
+        <div class="p-4">
+            <pre class="text-red-400 text-xs font-mono overflow-x-auto whitespace-pre-wrap bg-black rounded-xl p-4" style="max-height:400px;overflow-y:auto">{{ log_errores if log_errores else 'No hay errores recientes.' }}</pre>
+        </div>
+    </div>
+</div>
+
+<!-- PUBLICACIONES -->
+<div id="tab-content-mensajes" class="hidden">
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden">
+        <div class="p-5 border-b border-slate-800"><h2 class="text-lg font-bold text-white">🗑️ Moderación</h2></div>
+        <div class="divide-y divide-slate-800">
+            {% for m in mensajes %}
+            <div class="p-4 flex items-start justify-between gap-4">
+                <div><p class="text-white font-bold text-sm">{{ m.usuario_nombre }} <span class="text-slate-500 text-xs">{{ m.creado_en[:16] }}</span></p><p class="text-slate-300 text-sm mt-1">{{ m.contenido[:120] }}</p></div>
+                <a href="/admin/mensaje/{{ m.id }}/eliminar" onclick="return confirm('¿Eliminar?')" class="shrink-0 text-xs bg-red-500/10 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-lg font-bold">Eliminar</a>
+            </div>
+            {% else %}
+            <div class="p-10 text-center text-slate-500 text-sm">No hay publicaciones.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+.tab-btn { background: #0f172a; color: #64748b; border: 1px solid #1e293b; }
+.tab-btn.active { background: #1e40af; color: #fff; border-color: #3b82f6; }
+</style>
+
+<script>
+let graficasCreadas = false;
+
+function mostrarTab(nombre) {
+    document.querySelectorAll('[id^="tab-content-"]').forEach(d => d.classList.add('hidden'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-content-' + nombre).classList.remove('hidden');
+    document.getElementById('tab-' + nombre).classList.add('active');
+    if (nombre === 'stats' && !graficasCreadas) cargarStats();
+}
+
+function cargarStats() {
+    fetch('/admin/stats')
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('stat-activos').textContent = data.usuarios_activos;
+            document.getElementById('stat-completados').textContent = data.total_completados;
+            const colores = { x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } }, y: { ticks: { color: '#94a3b8', stepSize: 1 }, grid: { color: '#1e293b' } } };
+            new Chart(document.getElementById('grafica-registros'), {
+                type: 'bar',
+                data: { labels: data.registros_dia.length ? data.registros_dia.map(d => d.dia.slice(5)) : ['Sin datos'], datasets: [{ data: data.registros_dia.length ? data.registros_dia.map(d => d.total) : [0], backgroundColor: '#3b82f6', borderRadius: 6 }] },
+                options: { plugins: { legend: { display: false } }, scales: colores }
+            });
+            new Chart(document.getElementById('grafica-mensajes'), {
+                type: 'line',
+                data: { labels: data.mensajes_dia.length ? data.mensajes_dia.map(d => d.dia.slice(5)) : ['Sin datos'], datasets: [{ data: data.mensajes_dia.length ? data.mensajes_dia.map(d => d.total) : [0], borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.4 }] },
+                options: { plugins: { legend: { display: false } }, scales: colores }
+            });
+            const nombres = {1:'HTML 1',2:'HTML 2',3:'HTML 3',4:'HTML 4',5:'HTML 5',6:'CSS 1',7:'CSS 2',8:'CSS 3',9:'CSS 4',10:'CSS 5',11:'JS 1',12:'JS 2',13:'JS 3',14:'JS 4',15:'JS 5',16:'Py 1',17:'Py 2',18:'Py 3',19:'Py 4',20:'Py 5',21:'Py 6',22:'Py 7'};
+            const top = document.getElementById('top-desafios');
+            if (!data.top_desafios.length) { top.innerHTML = '<p class="text-slate-500 text-sm">Sin datos aún</p>'; return; }
+            const max = data.top_desafios[0].total;
+            top.innerHTML = data.top_desafios.map(d =>
+                '<div class="flex items-center gap-3"><span class="text-slate-400 text-xs w-16 shrink-0">' + (nombres[d.id]||'#'+d.id) + '</span><div class="flex-grow bg-slate-900 rounded-full h-2"><div class="bg-emerald-500 h-2 rounded-full" style="width:' + Math.round((d.total/max)*100) + '%"></div></div><span class="text-emerald-400 text-xs font-bold w-6 text-right">' + d.total + '</span></div>'
+            ).join('');
+            graficasCreadas = true;
+        });
+}
+</script>
+{% endblock %}

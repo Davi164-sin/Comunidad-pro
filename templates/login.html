@@ -1,0 +1,26 @@
+{% extends 'layout.html' %}
+{% block title %}Génesis - Iniciar Sesión{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto my-12 bg-slate-950 border border-slate-800 rounded-2xl p-8 shadow-2xl">
+    <div class="mb-6 text-center">
+        <h2 class="text-2xl font-extrabold text-white tracking-tight">Acceder al Núcleo</h2>
+        <p class="text-slate-400 mt-1 text-sm">Introduce tus credenciales para ingresar a Génesis.</p>
+    </div>
+    <form action="/login" method="POST" class="space-y-4">
+        <div>
+            <label class="block text-xs text-slate-400 uppercase tracking-wider font-semibold mb-2">Usuario o Correo</label>
+            <input type="text" name="username" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-slate-200 focus:outline-none focus:border-blue-500 transition font-medium" placeholder="david_achipiz" required>
+        </div>
+        <div>
+            <label class="block text-xs text-slate-400 uppercase tracking-wider font-semibold mb-2">Contraseña</label>
+            <input type="password" name="password" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-slate-200 focus:outline-none focus:border-blue-500 transition" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-blue-600/20 mt-2">
+            Entrar al Sistema
+        </button>
+    </form>
+    <p class="text-slate-500 text-xs text-center mt-6">
+        ¿No tienes una cuenta aún? <a href="/registro" class="text-emerald-400 hover:underline font-semibold">Regístrate aquí</a>
+    </p>
+</div>
+{% endblock %}

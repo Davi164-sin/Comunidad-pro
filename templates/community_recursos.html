@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recursos y Contenido Multimedia - ComunidadPro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .hero { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: #333; padding: 60px 0; margin-bottom: 40px; }
+        .card { border: none; border-radius: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{{ url_for('index') }}"><i class="fas fa-users text-primary me-2"></i>ComunidadPro</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('creadores') }}">Creadores</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="{{ url_for('recursos') }}">Recursos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('ranking_comunidad') }}">Ranking</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('chat_comunidad_vista') }}">Chat</a></li>
+                    {% if usuario %}
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard') }}">Panel</a></li>
+                        {% if usuario.rol == 'admin' %}
+                            <li class="nav-item"><a class="nav-link text-warning" href="{{ url_for('admin_panel') }}">Admin</a></li>
+                        {% endif %}
+                        <li class="nav-item"><a class="btn btn-outline-light btn-sm ms-2 mt-1" href="{{ url_for('logout') }}">Salir</a></li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">Iniciar Sesión</a></li>
+                        <li class="nav-item"><a class="btn btn-primary btn-sm ms-2 mt-1" href="{{ url_for('register') }}">Registrarse</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="hero text-center">
+        <div class="container">
+            <h1 class="display-5 fw-bold"><i class="fas fa-photo-video text-success me-2"></i>Repositorio de Recursos y Multimedia</h1>
+            <p class="lead mt-2">Descarga videos, música, imágenes y guías compartidas por la comunidad.</p>
+        </div>
+    </div>
+
+    <div class="container mb-5">
+        <div class="row">
+            {% if recursos %}
+                {% for r in recursos %}
+                    <div class="col-md-4 mb-4">
+                        <div class="card p-4 h-100 bg-white d-flex flex-column">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center fw-bold fs-4 me-3" style="width: 50px; height: 50px;">
+                                    {% if r.tipo == 'video' %}<i class="fas fa-video"></i>
+                                    {% elif r.tipo == 'audio' %}<i class="fas fa-music"></i>
+                                    {% elif r.tipo == 'imagen' %}<i class="fas fa-image"></i>
+                                    {% else %}<i class="fas fa-file-alt"></i>{% endif %}
+                                </div>
+                                <div>
+                                    <h5 class="mb-0 fw-bold">{{ r.titulo }}</h5>
+                                    <span class="badge bg-secondary text-uppercase">{{ r.tipo }}</span>
+                                </div>
+                            </div>
+                            <p class="text-muted small flex-grow-1">{{ r.descripcion }}</p>
+                            
+                            {% set ext = r.archivo.rsplit('.', 1)[1].lower() if '.' in r.archivo else '' %}
+                            {% if r.tipo == 'imagen' or ext in ['png', 'jpg', 'jpeg', 'gif', 'webp'] %}
+                                <img src="{{ url_for('static', filename='uploads/' + r.archivo) }}" class="img-fluid rounded mb-3" style="max-height: 150px; object-fit: cover;">
+                            {% elif r.tipo == 'video' or ext in ['mp4', 'webm', 'ogg', 'mov', 'mkv', 'avi'] %}
+                                <video controls class="w-100 rounded mb-3" style="max-height: 200px;"><source src="{{ url_for('static', filename='uploads/' + r.archivo) }}"></video>
+                            {% elif r.tipo == 'audio' or ext in ['mp3', 'wav', 'm4a', 'aac', 'ogg'] %}
+                                <audio controls class="w-100 mb-3"><source src="{{ url_for('static', filename='uploads/' + r.archivo) }}"></audio>
+                            {% endif %}
+
+                            <a href="{{ url_for('static', filename='uploads/' + r.archivo) }}" target="_blank" class="btn btn-outline-success w-100 rounded-pill mt-auto">
+                                <i class="fas fa-download me-1"></i> Descargar / Ver Archivo
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="col-12 text-center py-5">
+                    <h4 class="text-muted">Aún no hay recursos multimedia publicados.</h4>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

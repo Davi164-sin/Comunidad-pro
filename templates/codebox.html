@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CodeBox Mobile</title>
+  <!-- CodeMirror -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/htmlmixed/htmlmixed.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/css/css.min.js"></script>
+  <style>
+    /* Ajuste para que CodeMirror encaje en el editor-container */
+    .CodeMirror { height: 100%; font-family: 'Courier New', monospace; font-size: 14px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: black; color: #fff; height: 100vh; display: flex; flex-direction: column; }
+    header { width: 100%; background: linear-gradient(135deg, #667eac 50%, #0f2210 100%); padding: 10px; text-align: center; }
+    header h1 { font-size: 1.5em; margin-bottom: 5px; }
+    #sync-indicator { font-size: 0.85em; opacity: 0.9; }
+    #sync-indicator.online { color: #4ade80; }
+    #sync-indicator.offline { color: #ef4444; }
+    #tabs { display: flex; background: #2d2d2d; border-bottom: 2px solid #444; }
+    .tab { flex: 1; padding: 12px; background: #2d2d2d; color: #888; border: none; font-size: 14px; font-weight: bold; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.3s; }
+    .tab.active { color: #fff; border-bottom-color: #4CAF50; }
+    .editor-container { height: 35vh; position: relative; overflow: hidden; }
+    .editor-wrap { display: none; width: 100%; height: 100%; }
+    .editor-wrap.active { display: block; }
+    #keyboard { height: 30vh; background: transparent; padding: 8px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; box-sizing: border-box; }
+    .key { width: 100%; background: #3e3e3e; color: #fff; border: none; padding: 10px 12px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+    .key:active { background-color: #4e4e4e; transform: scale(0.95); }
+    #runButton { background: #4CAF50; grid-column: span 2; }
+    .container-preview { width: 100%; border: none; padding: 0; margin: 0; }
+    #preview { background: #fff; height: 300px; border-top: 2px solid #444; overflow: auto; }
+    #preview iframe { width: 100%; height: 100%; border: none; }
+    #console { background: #0d0d0d; color: #00ff00; padding: 10px; font-family: 'Courier New', monospace; font-size: 12px; height: 100px; overflow-y: auto; border-top: 2px solid #444; }
+    .code { width: 100%; background: transparent; color: #fff; border: none; padding: 10px 12px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>💻 CodeBox Pro</h1>
+    <div id="sync-indicator" class="online">● Sincronizado</div>
+      <div id="tabs" class="code">
+      <button class="tab active" onclick="switchTab('html')">HTML</button>
+      <button class="tab" onclick="switchTab('css')">CSS</button>
+      <button class="tab" onclick="switchTab('js')">JS</button>
+    </div>
+     <button id="runButton" class="key" onclick="runCode()">▶ Ejecutar</button>
+  </header>
+
+  <div class="container-preview">
+    <div id="preview"><iframe></iframe></div>
+  </div>
+
+  <main>
+    <div class="editor-container">
+      <div id="htmlEditorWrap" class="editor-wrap active"><textarea id="htmlEditor"></textarea></div>
+      <div id="cssEditorWrap" class="editor-wrap"><textarea id="cssEditor"></textarea></div>
+      <div id="jsEditorWrap" class="editor-wrap"><textarea id="jsEditor"></textarea></div>
+    </div>
+
+    <div id="keyboard">
+      <button class="key" onclick="insertText('{')">{</button>
+      <button class="key" onclick="insertText('}')">}</button>
+      <button class="key" onclick="insertText('(')">(</button>
+      <button class="key" onclick="insertText(')')">)</button>
+      <button class="key" onclick="insertText('<')">&lt;</button>
+      <button class="key" onclick="insertText('>')">&gt;</button>
+      <button class="key" onclick="insertText(';')">;</button>
+      <button class="key" onclick="insertText('=')">=</button>
+      <button class="key" onclick="clearAll()">🗑️</button>
+      <button class="key" onclick="saveCode()">💾</button>
+    </div>
+    <div id="console"></div>
+  </main>
+
+  <script>
+    const editors = {
+      html: CodeMirror.fromTextArea(document.getElementById('htmlEditor'), { mode: 'htmlmixed', theme: 'dracula', lineNumbers: true }),
+      css: CodeMirror.fromTextArea(document.getElementById('cssEditor'), { mode: 'css', theme: 'dracula', lineNumbers: true }),
+      js: CodeMirror.fromTextArea(document.getElementById('jsEditor'), { mode: 'javascript', theme: 'dracula', lineNumbers: true })
+    };
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      document.querySelectorAll('.editor-wrap').forEach(e => e.classList.remove('active'));
+      document.getElementById(tab + 'EditorWrap').classList.add('active');
+      editors[tab].refresh();
+      editors[tab].focus();
+    }
+
+    function insertText(text) {
+      editors[currentTab].replaceSelection(text);
+      editors[currentTab].focus();
+    }
+
+    function runCode() {
+      const consoleDiv = document.getElementById('console');
+      consoleDiv.innerHTML = '';
+      const html = editors.html.getValue();
+      const css = `<style>${editors.css.getValue()}</style>`;
+      const jsWithConsole = `<script>
+        const originalLog = console.log;
+        console.log = (...args) => { window.parent.postMessage({type: 'console', message: args.join(' ')}, '*'); originalLog(...args); };
+        try { ${editors.js.getValue()} } catch(e) { window.parent.postMessage({type: 'error', message: e.message}, '*'); }
+      <\/script>`;
+      const preview = document.getElementById('preview');
+      preview.innerHTML = '<iframe></iframe>';
+      const iframe = preview.querySelector('iframe');
+      iframe.contentDocument.open();
+      iframe.contentDocument.write(`<html><head>${css}</head><body>${html}${jsWithConsole}</body></html>`);
+      iframe.contentDocument.close();
+    }
+
+    window.addEventListener('message', e => {
+      const consoleDiv = document.getElementById('console');
+      if (e.data.type === 'console') consoleDiv.innerHTML += `✅ ${e.data.message}\n`;
+      else if (e.data.type === 'error') consoleDiv.innerHTML += `❌ Error: ${e.data.message}\n`;
+    });
+
+    function clearAll() {
+      if (confirm('¿Borrar todo el código?')) {
+        Object.values(editors).forEach(e => e.setValue(''));
+        document.getElementById('preview').innerHTML = '<iframe></iframe>';
+        document.getElementById('console').innerHTML = '';
+      }
+    }
+
+    function saveCode() {
+      localStorage.setItem('codebox-html', editors.html.getValue());
+      localStorage.setItem('codebox-css', editors.css.getValue());
+      localStorage.setItem('codebox-js', editors.js.getValue());
+      alert('💾 Código guardado');
+    }
+
+    window.onload = () => {
+      editors.html.setValue(localStorage.getItem('codebox-html') || '');
+      editors.css.setValue(localStorage.getItem('codebox-css') || '');
+      editors.js.setValue(localStorage.getItem('codebox-js') || '');
+    };
+    
+    let currentTab = 'html';
+  </script>
+</body>
+</html>

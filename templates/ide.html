@@ -1,0 +1,84 @@
+{% extends 'layout.html' %}
+{% block title %}Génesis - IDE Simple{% endblock %}
+{% block content %}
+<div class="p-2 h-screen flex flex-col gap-2 bg-slate-900 text-white">
+    <!-- Barra superior -->
+    <div class="flex justify-between items-center bg-slate-800 p-2 rounded-lg">
+        <span id="current-file" class="text-xs text-blue-400">Ningún archivo</span>
+        <div class="flex gap-2">
+            <button onclick="saveFile()" class="bg-emerald-700 px-3 py-1 rounded text-xs">Guardar</button>
+            <button onclick="runPython()" class="bg-blue-700 px-3 py-1 rounded text-xs font-bold">Ejecutar</button>
+        </div>
+    </div>
+
+    <!-- Editor nativo -->
+    <textarea id="editor" class="w-full flex-1 bg-black text-green-400 p-2 font-mono text-sm border border-slate-700 rounded-lg" placeholder="Escribe tu código Python aquí..."></textarea>
+
+    <!-- Terminal nativa -->
+    <pre id="terminal-output" class="h-32 bg-black text-green-400 p-2 rounded-lg border border-slate-700 font-mono text-xs overflow-y-auto">$ Listo para ejecutar...</pre>
+</div>
+
+<script>
+    const editor = document.getElementById('editor');
+    const output = document.getElementById('terminal-output');
+    const tree = document.getElementById('file-tree-container'); // Opcional si quieres mostrar lista
+    let currentPath = '';
+
+    window.onload = () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const fileToOpen = urlParams.get('file');
+        
+        loadFiles().then(() => {
+            if (fileToOpen) {
+                setTimeout(() => openFile(fileToOpen), 500);
+            }
+        });
+    };
+
+    async function loadFiles() {
+        const res = await fetch('/api/files/list');
+        const files = await res.json();
+        // Si quieres mostrar la lista en algún lado:
+        // const tree = document.getElementById('file-tree');
+        // tree.innerHTML = files.map(f => `<li onclick="openFile('${f}')">${f}</li>`).join('');
+        return files;
+    }
+
+    async function openFile(path) {
+        currentPath = path;
+        const res = await fetch('/api/files/read', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({path})
+        });
+        const data = await res.json();
+        editor.value = data.content;
+        document.getElementById('current-file').textContent = path;
+    }
+
+    async function saveFile() {
+        if (!currentPath) { alert("No hay archivo abierto"); return; }
+        await fetch('/api/files/save', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({path: currentPath, content: editor.value})
+        });
+        alert('Guardado');
+    }
+
+    async function runPython() {
+        const code = editor.value;
+        output.textContent = '$ Ejecutando...\n';
+        
+        try {
+            const response = await fetch('/api/ejecutar', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({codigo: code})
+            });
+            const data = await response.json();
+            output.textContent += data.salida;
+        } catch (e) {
+            output.textContent += 'Error: ' + e;
+        }
+    }
+</script>
+{% endblock %}

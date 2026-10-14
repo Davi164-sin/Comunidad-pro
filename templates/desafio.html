@@ -1,0 +1,110 @@
+{% extends 'layout.html' %}
+{% block title %}Génesis - {{ d.titulo }}{% endblock %}
+{% block content %}
+
+<div class="max-w-[1600px] mx-auto h-full flex flex-col">
+    <!-- Header -->
+    <div class="flex items-center space-x-2 text-xs text-slate-500 mb-6">
+        <a href="/dashboard" class="hover:text-slate-300 transition">← Volver a desafíos</a>
+        <span>/</span>
+        <span class="text-slate-400">{{ d.tema }}</span>
+        <span>/</span>
+        <span class="text-white font-medium">{{ d.titulo }}</span>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="flex flex-1 gap-6 overflow-hidden">
+        <!-- LEFT COLUMN: Editor and Instructions -->
+        <div class="flex-1 overflow-y-auto pr-2 space-y-6">
+            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-2xl">
+                <h1 class="text-2xl font-extrabold text-white mb-2">{{ d.titulo }}</h1>
+                <p class="text-slate-300 text-sm leading-relaxed mb-4">{{ d.descripcion | safe }}</p>
+                <div class="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4">
+                    <p class="text-blue-300 text-sm">💡 <strong class="text-blue-200">Pista:</strong> {{ d.pista }}</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-2xl">
+                <h2 class="text-lg font-bold text-white mb-4">Tu solución</h2>
+                <form action="{{ url_for('desafio', did=d.id) }}" method="POST" class="space-y-4">
+                    <textarea name="codigo" id="codigo-editor" class="w-full">{{ request.form.get('codigo', '') }}</textarea>
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition">
+                        Enviar Solución
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Preview or Console -->
+        <div class="w-1/3 flex flex-col gap-6 overflow-hidden">
+            <!-- Preview / Console -->
+            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-2xl flex-1 flex flex-col">
+                <h3 class="text-white font-bold mb-3" id="right-panel-title">Resultado</h3>
+                
+                <!-- Python Console -->
+                <div id="python-console" class="hidden flex-col flex-1">
+                    <button id="run-btn" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-bold mb-3">Ejecutar</button>
+                    <div id="output" class="bg-black text-emerald-400 font-mono p-4 rounded-xl text-sm flex-1 overflow-auto">Esperando ejecución...</div>
+                </div>
+
+                <!-- Web Preview -->
+                <div id="web-preview" class="hidden flex-1">
+                    <iframe id="preview-frame" class="w-full h-full bg-white rounded-xl"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+<script>
+    const tema = "{{ d.tema }}";
+    let mode = (tema === 'HTML') ? 'htmlmixed' : (tema === 'CSS') ? 'css' : (tema === 'JavaScript') ? 'javascript' : 'python';
+    
+    // Setup Editor
+    const editor = CodeMirror.fromTextArea(document.getElementById('codigo-editor'), {
+        lineNumbers: true,
+        theme: 'dracula',
+        mode: mode
+    });
+    
+    document.querySelector('form').addEventListener('submit', () => editor.save());
+
+    // Setup Right Panel
+    const isWebChallenge = (tema === 'HTML' || tema === 'CSS' || tema === 'JavaScript');
+    document.getElementById('python-console').classList.toggle('hidden', isWebChallenge);
+    document.getElementById('web-preview').classList.toggle('hidden', !isWebChallenge);
+    document.getElementById('right-panel-title').textContent = isWebChallenge ? "Vista Previa" : "Consola Python";
+
+    if (isWebChallenge) {
+        editor.on('change', updatePreview);
+        function updatePreview() {
+            const preview = document.getElementById('preview-frame');
+            const code = editor.getValue();
+            preview.srcdoc = tema === 'HTML' ? code : 
+                             tema === 'CSS' ? `<style>${code}</style><h1>Preview CSS</h1>` :
+                             `<script>${code}<\/script><h1>Check console</h1>`;
+        }
+        updatePreview();
+    } else {
+        // Init Pyodide
+        let pyodide;
+        async function initPyodide() {
+            pyodide = await loadPyodide();
+            document.getElementById('output').textContent = "Pyodide listo.";
+        }
+        initPyodide();
+        document.getElementById('run-btn').addEventListener('click', async () => {
+            const code = editor.getValue();
+            const output = document.getElementById('output');
+            output.textContent = "Ejecutando...";
+            try {
+                const result = await pyodide.runPythonAsync(code);
+                output.textContent = result !== undefined ? result : "Código ejecutado sin errores.";
+            } catch (err) {
+                output.textContent = err;
+            }
+        });
+    }
+</script>
+{% endblock %}

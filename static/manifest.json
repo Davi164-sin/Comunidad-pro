@@ -1,0 +1,15 @@
+{
+  "name": "Génesis - Ecosistema",
+  "short_name": "Génesis",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080c14",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/1006/1006771.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

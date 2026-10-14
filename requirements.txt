@@ -1,0 +1,8 @@
+Flask
+Flask-SocketIO
+werkzeug
+google-generativeai
+numpy
+python-dotenv
+gevent
+gunicorn

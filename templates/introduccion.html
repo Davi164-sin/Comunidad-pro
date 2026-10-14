@@ -1,0 +1,36 @@
+{% extends 'layout.html' %}
+{% block title %}Génesis - Bienvenido{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-12">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl p-10 shadow-2xl">
+        <h1 class="text-4xl font-extrabold text-white mb-6 bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">Bienvenido a Génesis</h1>
+        
+        <p class="text-lg text-slate-300 mb-8 leading-relaxed">
+            Génesis es la plataforma definitiva para aprender programación de forma práctica. 
+            Aquí encontrarás desafíos interactivos, lecciones estructuradas y una comunidad 
+            de desarrolladores en crecimiento.
+        </p>
+        
+        <div class="grid md:grid-cols-2 gap-6 mb-10">
+            <div class="bg-slate-950 p-6 rounded-xl border border-slate-800">
+                <h3 class="text-white font-bold text-xl mb-3">Aprende con Práctica</h3>
+                <p class="text-slate-400 text-sm">Resuelve desafíos de código reales en nuestro editor integrado y gana experiencia.</p>
+            </div>
+            <div class="bg-slate-950 p-6 rounded-xl border border-slate-800">
+                <h3 class="text-white font-bold text-xl mb-3">Comunidad Activa</h3>
+                <p class="text-slate-400 text-sm">Comparte tus soluciones, interactúa con otros desarrolladores y crece profesionalmente.</p>
+            </div>
+        </div>
+        
+        <div class="flex gap-4">
+            <a href="/registro" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-3 rounded-xl transition shadow-lg shadow-blue-600/20">
+                Registrarse Ahora
+            </a>
+            <a href="/login" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-8 py-3 rounded-xl transition">
+                Iniciar Sesión
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

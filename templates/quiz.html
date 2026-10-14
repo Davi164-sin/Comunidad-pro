@@ -1,0 +1,186 @@
+{% extends 'layout.html' %}
+{% block title %}Génesis - Quiz Rápido{% endblock %}
+{% block content %}
+
+<div class="max-w-xl mx-auto">
+
+    <div class="mb-4 text-center">
+        <h1 class="text-2xl font-extrabold text-white flex items-center justify-center space-x-2"><span>⚡</span><span>Quiz Rápido</span></h1>
+        <p class="text-slate-400 text-xs mt-0.5">Responde antes de que se acabe el tiempo. Cada acierto suma XP.</p>
+    </div>
+
+    <div id="pantalla-inicio" class="bg-slate-950 border border-slate-800 rounded-2xl p-8 text-center">
+        <p class="text-5xl mb-4">🧠</p>
+        <h2 class="text-xl font-bold text-white mb-2">¿Listo para el reto?</h2>
+        <p class="text-slate-400 text-sm mb-6">10 preguntas · 15 segundos cada una · Combo de racha</p>
+        <button onclick="iniciarQuiz()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-3 rounded-xl transition shadow-lg shadow-blue-600/20">
+            🚀 Comenzar
+        </button>
+    </div>
+
+    <div id="pantalla-juego" class="hidden">
+        <div class="flex items-center justify-between mb-3">
+            <span class="text-xs text-slate-500 font-bold">Pregunta <span id="num-pregunta">1</span>/10</span>
+            <span id="combo" class="text-xs text-amber-400 font-bold hidden">🔥 Combo x<span id="combo-num">2</span></span>
+            <div class="flex items-center gap-2">
+                <span class="text-emerald-400 text-xs font-bold">⭐ <span id="xp-actual">0</span> XP</span>
+            </div>
+        </div>
+
+        <div class="bg-slate-900 h-2 rounded-full overflow-hidden mb-1">
+            <div id="barra-tiempo" class="h-full bg-gradient-to-r from-emerald-500 to-amber-500 transition-all duration-100" style="width: 100%"></div>
+        </div>
+
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 mb-4">
+            <p id="texto-pregunta" class="text-white font-bold text-lg leading-relaxed"></p>
+        </div>
+
+        <div id="opciones" class="grid gap-3"></div>
+    </div>
+
+    <div id="pantalla-resultado" class="hidden bg-slate-950 border border-slate-800 rounded-2xl p-8 text-center">
+        <p class="text-5xl mb-4" id="emoji-resultado">🎉</p>
+        <h2 class="text-2xl font-extrabold text-white mb-2">¡Quiz completado!</h2>
+        <p class="text-slate-400 text-sm mb-1">Respondiste correctamente <span id="aciertos" class="text-white font-bold">0</span>/10</p>
+        <p class="text-emerald-400 text-2xl font-black my-4">+<span id="xp-ganado">0</span> XP</p>
+        <div class="flex gap-3 justify-center">
+            <button onclick="iniciarQuiz()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-3 rounded-xl transition">🔄 Jugar de nuevo</button>
+            <a href="/dashboard" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-6 py-3 rounded-xl transition">Volver</a>
+        </div>
+    </div>
+
+</div>
+
+<script>
+const PREGUNTAS = [
+    {p: "¿Qué etiqueta HTML se usa para un párrafo?", o: ["<p>", "<párrafo>", "<text>", "<div>"], r: 0},
+    {p: "¿Cuál es la extensión de un archivo Python?", o: [".js", ".py", ".html", ".php"], r: 1},
+    {p: "¿Qué significa CSS?", o: ["Computer Style Sheets", "Cascading Style Sheets", "Creative Style System", "Code Style Syntax"], r: 1},
+    {p: "¿Cómo declaras una variable en JavaScript moderno?", o: ["var x", "let x", "variable x", "int x"], r: 1},
+    {p: "¿Qué función imprime texto en Python?", o: ["echo()", "console.log()", "print()", "show()"], r: 2},
+    {p: "¿Qué etiqueta crea un enlace en HTML?", o: ["<link>", "<a>", "<url>", "<href>"], r: 1},
+    {p: "¿Qué propiedad CSS cambia el color de fondo?", o: ["color", "background-color", "bg-color", "fill"], r: 1},
+    {p: "¿Cuál es el índice del primer elemento en una lista de Python?", o: ["1", "0", "-1", "Depende"], r: 1},
+    {p: "¿Qué método de array en JS transforma cada elemento?", o: ["filter()", "map()", "reduce()", "forEach()"], r: 1},
+    {p: "¿Qué significa 'XP' en Génesis?", o: ["Extra Points", "Experience", "Excelente Programador", "Extended Python"], r: 1},
+    {p: "¿Cuál etiqueta define el cuerpo visible de una página HTML?", o: ["<head>", "<main>", "<body>", "<content>"], r: 2},
+    {p: "¿Qué hace 'for i in range(5)' en Python?", o: ["Cuenta del 1 al 5", "Itera 5 veces (0 a 4)", "Crea una lista", "Da error"], r: 1},
+    {p: "¿Qué unidad de CSS es relativa al tamaño de fuente raíz?", o: ["px", "rem", "vh", "pt"], r: 1},
+    {p: "¿Qué palabra clave define una función en Python?", o: ["function", "def", "func", "lambda"], r: 1},
+    {p: "¿Qué hace 'console.log()' en JavaScript?", o: ["Borra la consola", "Imprime en consola", "Crea un log file", "Pausa el código"], r: 1},
+];
+
+let preguntasJuego = [];
+let indiceActual = 0;
+let aciertos = 0;
+let xpGanado = 0;
+let combo = 0;
+let timer = null;
+let tiempoRestante = 15;
+
+function barajar(arr) {
+    return arr.map(v => ({v, s: Math.random()})).sort((a,b) => a.s - b.s).map(({v}) => v);
+}
+
+function iniciarQuiz() {
+    preguntasJuego = barajar(PREGUNTAS).slice(0, 10);
+    indiceActual = 0;
+    aciertos = 0;
+    xpGanado = 0;
+    combo = 0;
+    document.getElementById('pantalla-inicio').classList.add('hidden');
+    document.getElementById('pantalla-resultado').classList.add('hidden');
+    document.getElementById('pantalla-juego').classList.remove('hidden');
+    mostrarPregunta();
+}
+
+function mostrarPregunta() {
+    if (indiceActual >= preguntasJuego.length) {
+        terminarQuiz();
+        return;
+    }
+    const q = preguntasJuego[indiceActual];
+    document.getElementById('num-pregunta').textContent = indiceActual + 1;
+    document.getElementById('xp-actual').textContent = xpGanado;
+    document.getElementById('texto-pregunta').textContent = q.p;
+
+    const opcionesDiv = document.getElementById('opciones');
+    opcionesDiv.innerHTML = '';
+    const opcionesBarajadas = q.o.map((texto, i) => ({texto, esCorrecta: i === q.r}));
+    barajar(opcionesBarajadas).forEach(op => {
+        const btn = document.createElement('button');
+        btn.className = 'bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-blue-500/50 text-slate-200 text-sm font-medium px-4 py-3.5 rounded-xl text-left transition';
+        btn.textContent = op.texto;
+        btn.onclick = () => responder(op.esCorrecta, btn);
+        opcionesDiv.appendChild(btn);
+    });
+
+    if (combo >= 2) {
+        document.getElementById('combo').classList.remove('hidden');
+        document.getElementById('combo-num').textContent = combo;
+    } else {
+        document.getElementById('combo').classList.add('hidden');
+    }
+
+    tiempoRestante = 15;
+    actualizarBarra();
+    clearInterval(timer);
+    timer = setInterval(() => {
+        tiempoRestante -= 0.1;
+        actualizarBarra();
+        if (tiempoRestante <= 0) {
+            clearInterval(timer);
+            responder(false, null);
+        }
+    }, 100);
+}
+
+function actualizarBarra() {
+    const pct = Math.max(0, (tiempoRestante / 15) * 100);
+    document.getElementById('barra-tiempo').style.width = pct + '%';
+}
+
+function responder(esCorrecta, btnElegido) {
+    clearInterval(timer);
+    const botones = document.querySelectorAll('#opciones button');
+    botones.forEach(b => b.disabled = true);
+
+    if (esCorrecta) {
+        aciertos++;
+        combo++;
+        const bonusCombo = combo >= 2 ? Math.min(combo - 1, 5) * 2 : 0;
+        xpGanado += 10 + bonusCombo;
+        if (btnElegido) {
+            btnElegido.classList.remove('bg-slate-900', 'border-slate-800');
+            btnElegido.classList.add('bg-emerald-600', 'border-emerald-500', 'text-white');
+        }
+    } else {
+        combo = 0;
+        botones.forEach(b => {
+            if (b === btnElegido) {
+                b.classList.add('bg-red-600/30', 'border-red-500');
+            }
+        });
+    }
+
+    setTimeout(() => {
+        indiceActual++;
+        mostrarPregunta();
+    }, 900);
+}
+
+function terminarQuiz() {
+    document.getElementById('pantalla-juego').classList.add('hidden');
+    document.getElementById('pantalla-resultado').classList.remove('hidden');
+    document.getElementById('aciertos').textContent = aciertos;
+    document.getElementById('xp-ganado').textContent = xpGanado;
+    document.getElementById('emoji-resultado').textContent = aciertos >= 8 ? '🏆' : aciertos >= 5 ? '🎉' : '💪';
+
+    fetch('/quiz/completar', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'xp=' + xpGanado
+    });
+}
+</script>
+{% endblock %}

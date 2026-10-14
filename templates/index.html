@@ -1,0 +1,147 @@
+{% extends 'layout.html' %}
+{% block title %}Génesis - Ranking Global{% endblock %}
+
+{% block content %}
+<div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <!-- ... (Contenido anterior) ... -->
+    <div>
+        <h1 class="text-3xl font-extrabold text-white tracking-tight flex items-center space-x-3">
+            <span>Torneo de Programadores</span>
+        </h1>
+        <p class="text-slate-400 mt-1">Los desarrolladores más activos del ecosistema Génesis.</p>
+    </div>
+
+    <div class="shrink-0">
+        {% if usuario and usuario.is_authenticated %}
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 flex items-center space-x-4 shadow-xl">
+                <div>
+                    <p class="text-xs text-slate-500 font-medium">Conectado como</p>
+                    <p class="text-slate-200 text-sm font-bold"><span class="text-blue-400">@{{ usuario.nombre }}</span></p>
+                </div>
+                <a href="/dashboard" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2 rounded-lg transition shadow-lg shadow-blue-600/10">
+                    Ir a mi Consola &rarr;
+                </a>
+            </div>
+        {% else %}
+            <div class="bg-slate-950 border border-slate-800/60 rounded-xl p-4 flex items-center space-x-4 shadow-xl">
+                <p class="text-slate-400 text-xs font-medium">¿Quieres sumar puntos?</p>
+                <a href="/login" class="bg-emerald-600 hover:bg-emerald-500 text-slate-950 text-xs font-extrabold px-4 py-2 rounded-lg transition shadow-lg shadow-emerald-600/10">
+                    Entrar al Sistema
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Chat Component -->
+<div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 mb-8 shadow-xl">
+    <h3 class="text-white font-bold text-lg mb-4 flex items-center">
+        Asistente David
+    </h3>
+    
+    <div id="chat-messages" class="h-64 overflow-y-auto mb-4 p-4 bg-slate-950 rounded-xl text-sm space-y-3">
+        <!-- Los mensajes aparecerán aquí -->
+    </div>
+    
+    <div class="flex gap-2">
+        <input type="text" id="chat-input" class="flex-grow bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Escribe tu pregunta aquí...">
+        <button onclick="enviarPregunta()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-bold transition">Enviar</button>
+    </div>
+</div>
+
+<script>
+async function enviarPregunta() {
+    const input = document.getElementById('chat-input');
+    const msgDiv = document.getElementById('chat-messages');
+    const pregunta = input.value;
+    if(!pregunta) return;
+
+    // Mensaje del usuario
+    msgDiv.innerHTML += `<div class="text-right"><span class="inline-block bg-blue-600 text-white rounded-2xl rounded-tr-none px-4 py-2">Tú: ${pregunta}</span></div>`;
+    input.value = '';
+    msgDiv.scrollTop = msgDiv.scrollHeight;
+
+    // Indicador de carga
+    msgDiv.innerHTML += `<div id="loading" class="text-slate-500 italic">David está pensando...</div>`;
+
+    const res = await fetch('/api/asistente', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({pregunta})
+    });
+    const data = await res.json();
+    
+    // Eliminar carga
+    document.getElementById('loading').remove();
+    
+    // Mensaje de David
+    msgDiv.innerHTML += `<div><span class="inline-block bg-slate-800 text-slate-200 rounded-2xl rounded-tl-none px-4 py-2">David: ${data.respuesta || data.error}</span></div>`;
+    msgDiv.scrollTop = msgDiv.scrollHeight;
+}
+</script>
+
+<div class="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+    <!-- ... (El resto del código original) ... -->
+    <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-950">
+        <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+            <span>📊</span> <span>Clasificación del Torneo Principal</span>
+        </h2>
+        <span class="bg-emerald-500/10 text-emerald-400 text-xs px-3 py-1 rounded-full font-mono font-bold border border-emerald-500/20 flex items-center space-x-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>En Vivo</span>
+        </span>
+    </div>
+    
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="border-b border-slate-800 bg-slate-900/50 text-slate-400 text-xs uppercase tracking-wider font-semibold">
+                    <th class="py-4 px-6 text-center w-20">Pos</th>
+                    <th class="py-4 px-6">Desarrollador</th>
+                    <th class="py-4 px-6 text-center">Rango</th>
+                    <th class="py-4 px-6 text-right w-32">Puntos</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60 font-medium text-sm">
+                {% for u in torneo %}
+                <tr class="hover:bg-slate-900/40 transition {% if usuario and usuario.is_authenticated and usuario.nombre == u.nombre %} bg-blue-500/5 {% endif %}">
+                    <td class="py-4 px-6 text-center text-slate-400 font-mono">
+                        {% if loop.index == 1 %}
+                            <span class="text-amber-400 font-bold">1</span>
+                        {% elif loop.index == 2 %}
+                            <span class="text-slate-300 font-bold">2</span>
+                        {% elif loop.index == 3 %}
+                            <span class="text-amber-700 font-bold">3</span>
+                        {% else %}
+                            {{ loop.index }}
+                        {% endif %}
+                    </td>
+
+                    
+                    <td class="py-4 px-6 text-white font-bold">
+                        <div class="flex items-center space-x-2">
+                            <span>{{ u.nombre }}</span>
+                            {% if usuario and usuario.is_authenticated and usuario.nombre == u.nombre %}
+                                <span class="bg-blue-500/10 text-blue-400 text-[10px] px-2 py-0.5 rounded-full font-extrabold border border-blue-500/20 tracking-wide uppercase">Tú</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    
+                    <td class="py-4 px-6 text-center">
+                        <span class="bg-slate-900 border border-slate-800 text-slate-300 text-xs px-2.5 py-1 rounded-md font-medium">
+                            {% if u.puntos >= 1000 %} Elite Dev {% elif u.puntos >= 500 %} Pro Dev {% else %} Script Kid {% endif %}
+                        </span>
+                    </td>
+                    
+                    <td class="py-4 px-6 text-right text-emerald-400 font-mono font-bold">
+                        {{ u.puntos }} XP
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

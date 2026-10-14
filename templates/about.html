@@ -1,0 +1,48 @@
+{% extends 'layout.html' %}
+{% block title %}Génesis - Acerca del Proyecto{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+    <div>
+        <h1 class="text-3xl font-extrabold text-white tracking-tight">🚀 Acerca de Génesis</h1>
+        <p class="text-slate-400 mt-1">Todo lo que necesitas saber sobre cómo funciona el sistema.</p>
+    </div>
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6">
+        <h2 class="text-lg font-bold text-white mb-3">🎯 ¿Qué es Génesis?</h2>
+        <p class="text-slate-300 text-sm leading-relaxed">Génesis es una plataforma de aprendizaje de programación con desafíos progresivos, una academia con lecciones gratis y premium, una comunidad para compartir código, y un chat en vivo para hablar con otros desarrolladores en tiempo real.</p>
+    </div>
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6">
+        <h2 class="text-lg font-bold text-white mb-4">⚙️ Cómo funciona</h2>
+        <div class="space-y-4">
+            <div class="flex items-start space-x-4"><div class="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-black text-sm shrink-0">1</div><div><p class="text-white font-semibold text-sm">Regístrate gratis</p><p class="text-slate-400 text-xs mt-0.5">Crea tu cuenta con usuario y contraseña.</p></div></div>
+            <div class="flex items-start space-x-4"><div class="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-black text-sm shrink-0">2</div><div><p class="text-white font-semibold text-sm">Completa los 22 desafíos</p><p class="text-slate-400 text-xs mt-0.5">HTML, CSS, JavaScript y Python progresivos.</p></div></div>
+            <div class="flex items-start space-x-4"><div class="w-8 h-8 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 font-black text-sm shrink-0">3</div><div><p class="text-white font-semibold text-sm">Gana XP y sube de rango</p><p class="text-slate-400 text-xs mt-0.5">Compite en el ranking global.</p></div></div>
+            <div class="flex items-start space-x-4"><div class="w-8 h-8 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400 font-black text-sm shrink-0">4</div><div><p class="text-white font-semibold text-sm">Explora la Academia</p><p class="text-slate-400 text-xs mt-0.5">Lecciones a fondo, gratis y premium.</p></div></div>
+            <div class="flex items-start space-x-4"><div class="w-8 h-8 rounded-full bg-pink-500/20 border border-pink-500/30 flex items-center justify-center text-pink-400 font-black text-sm shrink-0">5</div><div><p class="text-white font-semibold text-sm">Chat y Comunidad</p><p class="text-slate-400 text-xs mt-0.5">Comparte imágenes y código, reacciona y responde.</p></div></div>
+        </div>
+    </div>
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6">
+        <h2 class="text-lg font-bold text-white mb-4">📚 Contenido del curso</h2>
+        <div class="grid grid-cols-2 gap-3">
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center space-x-3"><span class="text-2xl">🏗️</span><div><p class="text-white font-bold text-sm">HTML</p><p class="text-slate-400 text-xs">5 desafíos</p></div></div>
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center space-x-3"><span class="text-2xl">🎨</span><div><p class="text-white font-bold text-sm">CSS</p><p class="text-slate-400 text-xs">5 desafíos</p></div></div>
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center space-x-3"><span class="text-2xl">⚡</span><div><p class="text-white font-bold text-sm">JavaScript</p><p class="text-slate-400 text-xs">5 desafíos</p></div></div>
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center space-x-3"><span class="text-2xl">🐍</span><div><p class="text-white font-bold text-sm">Python</p><p class="text-slate-400 text-xs">7 desafíos</p></div></div>
+        </div>
+        <p class="text-slate-500 text-xs mt-4 text-center">22 desafíos + Academia con lecciones a fondo</p>
+    </div>
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6">
+        <h2 class="text-lg font-bold text-white mb-4">⭐ Sistema de XP y rangos</h2>
+        <div class="space-y-2">
+            <div class="flex items-center justify-between py-2 border-b border-slate-800"><span class="text-slate-300 text-sm">Script Kid</span><span class="text-slate-500 text-xs font-mono">0–499 XP</span></div>
+            <div class="flex items-center justify-between py-2 border-b border-slate-800"><span class="text-blue-400 text-sm font-medium">Pro Dev</span><span class="text-slate-500 text-xs font-mono">500–999 XP</span></div>
+            <div class="flex items-center justify-between py-2 border-b border-slate-800"><span class="text-emerald-400 text-sm font-medium">Elite Dev</span><span class="text-slate-500 text-xs font-mono">1000–1999 XP</span></div>
+            <div class="flex items-center justify-between py-2"><span class="text-amber-400 text-sm font-bold">Presidente Génesis 👑</span><span class="text-slate-500 text-xs font-mono">2000+ XP</span></div>
+        </div>
+    </div>
+    <div class="bg-gradient-to-br from-blue-500/10 to-emerald-500/10 border border-blue-500/20 rounded-2xl p-6 text-center">
+        <p class="text-slate-400 text-sm">Creado con 💙 por</p>
+        <p class="text-white font-black text-xl mt-1">David Achipiz</p>
+        <p class="text-slate-500 text-xs mt-1">Desarrollado desde Termux · Bogotá, Colombia 🇨🇴</p>
+    </div>
+</div>
+{% endblock %}

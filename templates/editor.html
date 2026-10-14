@@ -1,0 +1,155 @@
+{% extends 'layout.html' %}
+{% block title %}Génesis - Editor de Código{% endblock %}
+{% block content %}
+
+<div class="mb-4">
+    <h1 class="text-2xl font-extrabold text-white flex items-center space-x-2"><span>💻</span><span>Editor en Vivo</span></h1>
+    <p class="text-slate-400 text-xs mt-0.5">Escribe HTML, CSS y JS, y mira el resultado al instante.</p>
+</div>
+
+<div class="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+    <div class="border-b border-slate-800">
+        <div class="bg-slate-900 px-4 py-2 flex items-center justify-between">
+            <span class="text-xs text-slate-500 font-bold uppercase tracking-wider">Vista previa</span>
+            <span id="sync-indicator" class="text-xs text-emerald-400">●</span>
+        </div>
+        <div id="preview-container" class="bg-white" style="height: 240px;">
+            <iframe id="preview" class="w-full h-full border-0"></iframe>
+        </div>
+    </div>
+
+    <div class="flex bg-slate-900 border-b border-slate-800">
+        <button class="tab-btn flex-1 py-2.5 text-xs font-bold text-white border-b-2 border-blue-500" data-tab="html">HTML</button>
+        <button class="tab-btn flex-1 py-2.5 text-xs font-bold text-slate-500 border-b-2 border-transparent" data-tab="css">CSS</button>
+        <button class="tab-btn flex-1 py-2.5 text-xs font-bold text-slate-500 border-b-2 border-transparent" data-tab="js">JS</button>
+    </div>
+
+    <div class="relative" style="height: 260px;">
+        <textarea id="htmlEditor" class="editor-area active" placeholder="&lt;h1&gt;Hola Mundo&lt;/h1&gt;"></textarea>
+        <textarea id="cssEditor" class="editor-area" placeholder="h1 { color: blue; }"></textarea>
+        <textarea id="jsEditor" class="editor-area" placeholder="console.log('Hola');"></textarea>
+    </div>
+
+    <div class="grid grid-cols-4 gap-1.5 p-2 bg-slate-900 border-t border-slate-800">
+        <button class="key-btn" onclick="insertText('{')">{</button>
+        <button class="key-btn" onclick="insertText('}')">}</button>
+        <button class="key-btn" onclick="insertText('(')">(</button>
+        <button class="key-btn" onclick="insertText(')')">)</button>
+        <button class="key-btn" onclick="insertText('&lt;')">&lt;</button>
+        <button class="key-btn" onclick="insertText('&gt;')">&gt;</button>
+        <button class="key-btn" onclick="insertText(';')">;</button>
+        <button class="key-btn" onclick="insertText('=')">=</button>
+        <button class="col-span-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg py-2.5 text-sm transition" onclick="runCode()">▶ Ejecutar</button>
+        <button class="key-btn" onclick="clearAll()" title="Limpiar">🗑️</button>
+        <button class="key-btn" onclick="saveCode()" title="Guardar">💾</button>
+    </div>
+
+    <div id="consoleOutput" class="bg-black text-emerald-400 font-mono text-[11px] p-3 overflow-y-auto" style="height: 90px; white-space: pre-wrap;"></div>
+</div>
+
+<p class="text-slate-600 text-xs text-center mt-4">💾 Tu código se guarda automáticamente en este dispositivo.</p>
+
+<style>
+.editor-area { display: none; position: absolute; inset: 0; width: 100%; height: 100%; background: #0f172a; color: #e2e8f0; padding: 12px; font-family: 'Courier New', monospace; font-size: 13px; border: none; resize: none; outline: none; }
+.editor-area.active { display: block; }
+.key-btn { background: #1e293b; color: #fff; border: none; padding: 10px 4px; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; transition: all 0.15s; }
+.key-btn:active { background: #334155; transform: scale(0.95); }
+</style>
+
+<script>
+let currentTab = 'html';
+const editors = {
+    html: document.getElementById('htmlEditor'),
+    css: document.getElementById('cssEditor'),
+    js: document.getElementById('jsEditor')
+};
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        currentTab = tab;
+        document.querySelectorAll('.tab-btn').forEach(t => {
+            t.classList.remove('text-white','border-blue-500');
+            t.classList.add('text-slate-500','border-transparent');
+        });
+        btn.classList.remove('text-slate-500','border-transparent');
+        btn.classList.add('text-white','border-blue-500');
+        document.querySelectorAll('.editor-area').forEach(e => e.classList.remove('active'));
+        editors[tab].classList.add('active');
+        editors[tab].focus();
+    });
+});
+
+function insertText(text) {
+    const editor = editors[currentTab];
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+    const before = editor.value.substring(0, start);
+    const after = editor.value.substring(end);
+    editor.value = before + text + after;
+    editor.selectionStart = editor.selectionEnd = start + text.length;
+    editor.focus();
+}
+
+function runCode() {
+    const consoleDiv = document.getElementById('consoleOutput');
+    consoleDiv.innerHTML = '';
+    const html = editors.html.value;
+    const css = '<style>' + editors.css.value + '</style>';
+    const jsWithConsole = '<scr' + 'ipt>\n' +
+        'const originalLog = console.log;\n' +
+        'console.log = function(...args) {\n' +
+        '  window.parent.postMessage({ type: "console", message: args.join(" ") }, "*");\n' +
+        '  originalLog.apply(console, args);\n' +
+        '};\n' +
+        'try { ' + editors.js.value + ' }\n' +
+        'catch(error) { window.parent.postMessage({ type: "error", message: error.message }, "*"); }\n' +
+        '</scr' + 'ipt>';
+    const code = '<!DOCTYPE html><html><head>' + css + '</head><body>' + html + jsWithConsole + '</body></html>';
+    const iframe = document.getElementById('preview');
+    iframe.srcdoc = code;
+}
+
+window.addEventListener('message', function(e) {
+    const consoleDiv = document.getElementById('consoleOutput');
+    if (e.data.type === 'console') {
+        consoleDiv.innerHTML += '✅ ' + e.data.message + '\n';
+    } else if (e.data.type === 'error') {
+        consoleDiv.innerHTML += '❌ Error: ' + e.data.message + '\n';
+    }
+    consoleDiv.scrollTop = consoleDiv.scrollHeight;
+});
+
+function clearAll() {
+    if (confirm('¿Borrar todo el código?')) {
+        editors.html.value = '';
+        editors.css.value = '';
+        editors.js.value = '';
+        document.getElementById('preview').srcdoc = '';
+        document.getElementById('consoleOutput').innerHTML = '';
+        saveCode();
+    }
+}
+
+function saveCode() {
+    try {
+        localStorage.setItem('genesis-editor-html', editors.html.value);
+        localStorage.setItem('genesis-editor-css', editors.css.value);
+        localStorage.setItem('genesis-editor-js', editors.js.value);
+    } catch(e) {}
+}
+
+window.onload = function() {
+    try {
+        editors.html.value = localStorage.getItem('genesis-editor-html') || '';
+        editors.css.value = localStorage.getItem('genesis-editor-css') || '';
+        editors.js.value = localStorage.getItem('genesis-editor-js') || '';
+    } catch(e) {}
+    if (editors.html.value || editors.css.value || editors.js.value) {
+        runCode();
+    }
+};
+
+Object.values(editors).forEach(ed => ed.addEventListener('input', saveCode));
+</script>
+{% endblock %}

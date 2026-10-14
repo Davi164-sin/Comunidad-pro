@@ -1,0 +1,36 @@
+{% extends 'layout.html' %}
+{% block title %}Génesis - Terminal SocketIO{% endblock %}
+{% block content %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
+
+<div class="p-4 h-[calc(100vh-100px)]">
+    <pre id="output" class="bg-black text-green-500 p-4 rounded-xl border border-slate-700 flex-1 overflow-y-auto font-mono text-sm mb-4">Génesis Terminal (SocketIO)\n$ </pre>
+    <div class="flex gap-2">
+        <input type="text" id="comando-input" placeholder="Escribe..." class="flex-1 bg-slate-900 text-white p-3 rounded-xl border border-slate-700 font-mono text-sm">
+        <button id="btn-enviar" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold">Enviar</button>
+    </div>
+</div>
+
+<script>
+    const socket = io();
+    const output = document.getElementById('output');
+    const input = document.getElementById('comando-input');
+    const btn = document.getElementById('btn-enviar');
+
+    socket.on('salida', (data) => {
+        output.textContent += data.texto;
+        output.scrollTop = output.scrollHeight;
+    });
+
+    function enviar() {
+        const cmd = input.value;
+        if (!cmd.trim()) return;
+        output.textContent += '$ ' + cmd + '\n';
+        socket.emit('comando', {comando: cmd});
+        input.value = '';
+    }
+
+    btn.addEventListener('click', enviar);
+    input.addEventListener('keypress', (e) => { if (e.key === 'Enter') enviar(); });
+</script>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends 'layout.html' %}
+{% block title %}Génesis - Activar Premium{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto">
+    <div class="text-center mb-8">
+        <p class="text-5xl mb-3">👑</p>
+        <h1 class="text-3xl font-extrabold text-white">Activa tu Plan Premium</h1>
+        <p class="text-slate-400 mt-2 text-sm">Accede a todas las lecciones, proyectos y mentorías.</p>
+    </div>
+    <div class="bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/30 rounded-2xl p-6 mb-6 text-center">
+        <p class="text-slate-400 text-sm mb-1">Membresía mensual</p>
+        <p class="text-4xl font-black text-white">$9.900 <span class="text-lg text-slate-400 font-normal">COP/mes</span></p>
+        <div class="mt-4 space-y-2 text-left">
+            {% for item in ["Acceso a todas las lecciones Premium", "Proyectos reales para tu portafolio", "Mentoría personalizada 1:1", "Certificado de participación Génesis"] %}
+            <div class="flex items-center space-x-2 text-sm"><span class="text-emerald-400">✓</span><span class="text-slate-300">{{ item }}</span></div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-2xl text-center">
+        <p class="text-slate-400 text-sm mb-6">Paga con Nequi, PSE o tarjeta de forma segura con Wompi</p>
+        <div id="wompi-button-container">
+            <script
+                src="https://checkout.wompi.co/widget.js"
+                data-render="button"
+                data-public-key="{{ wompi_public_key }}"
+                data-currency="COP"
+                data-amount-in-cents="{{ amount_cents }}"
+                data-reference="{{ referencia }}"
+                data-redirect-url="{{ redirect_url }}">
+            </script>
+        </div>
+        <p class="text-slate-600 text-xs mt-4">🔒 Pago seguro procesado por Wompi · Bancolombia</p>
+        <p class="text-slate-700 text-[10px] mt-2">Sandbox: tarjeta de prueba 4242 4242 4242 4242, CVV 123, fecha futura</p>
+    </div>
+    <div class="mt-4 text-center"><a href="/cursos" class="text-slate-500 hover:text-slate-300 text-xs transition">← Volver a los cursos</a></div>
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends 'layout.html' %}
+{% block title %}Génesis - {{ leccion.titulo }}{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="flex items-center space-x-2 text-xs text-slate-500 mb-6">
+        <a href="/cursos" class="hover:text-slate-300 transition">← Academia</a>
+        <span>/</span><span class="text-white font-medium">{{ leccion.titulo }}</span>
+    </div>
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 mb-6 shadow-2xl">
+        <div class="flex items-start justify-between gap-4 mb-6">
+            <div>
+                <p class="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">{{ leccion.modulo }}</p>
+                <h1 class="text-2xl font-extrabold text-white">{{ leccion.titulo }}</h1>
+            </div>
+            <span class="shrink-0 text-xs font-bold px-3 py-1.5 rounded-full {% if leccion.es_premium %}bg-amber-500/10 text-amber-400 border border-amber-500/20{% else %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/20{% endif %}">
+                {% if leccion.es_premium %}👑 Premium{% else %}✅ Gratis{% endif %}
+            </span>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+            <pre class="text-slate-200 text-sm leading-relaxed whitespace-pre-wrap font-sans">{{ leccion.contenido }}</pre>
+        </div>
+    </div>
+    <div class="flex items-center justify-between">
+        <a href="/cursos" class="text-slate-400 hover:text-white text-sm font-medium transition">← Volver a la Academia</a>
+        <a href="/leccion/{{ leccion.id + 1 }}" class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition">Siguiente →</a>
+    </div>
+</div>
+{% endblock %}

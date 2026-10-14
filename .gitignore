@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+venv_sync/
+
+# Base de datos local
+*.db
+
+# Archivos multimedia subidos por usuarios
+static/uploads/*
+!static/uploads/.gitkeep
+
+# IDEs
+.idea/
+.vscode/
+.claude/
+.hermes/

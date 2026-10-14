@@ -1,0 +1,43 @@
+{% extends 'layout.html' %}
+{% block title %}Génesis - Academia{% endblock %}
+{% block content %}
+<div class="mb-8 flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+    <div>
+        <h1 class="text-3xl font-extrabold text-white tracking-tight">🎓 Academia Génesis</h1>
+        <p class="text-slate-400 mt-1">Aprende programación desde cero con lecciones prácticas.</p>
+    </div>
+    {% if usuario.plan != 'premium' %}
+    <div class="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-2xl p-5 shrink-0 max-w-xs">
+        <p class="text-amber-400 font-black text-lg">👑 Plan Premium</p>
+        <p class="text-slate-400 text-xs mt-1 mb-3">Desbloquea todas las lecciones y mentorías exclusivas.</p>
+        <a href="/pago_premium" class="block text-center bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold py-2.5 rounded-xl transition text-sm mb-2">🚀 Activar Premium — $9.900 COP/mes</a>
+        <a href="https://wa.me/573000000000" target="_blank" class="block text-center bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 font-bold py-2.5 rounded-xl transition text-sm">📅 Agendar Mentoría</a>
+    </div>
+    {% else %}
+    <div class="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-5 shrink-0 text-center">
+        <p class="text-emerald-400 font-black text-lg">✅ Miembro Premium</p>
+        <p class="text-slate-400 text-xs mt-1">Tienes acceso completo.</p>
+    </div>
+    {% endif %}
+</div>
+{% for lec in lecciones %}
+<a href="{% if not lec.es_premium or usuario.plan == 'premium' %}/leccion/{{ lec.id }}{% else %}/pago_premium{% endif %}"
+   class="flex items-center justify-between bg-slate-950 border rounded-2xl p-5 mb-3 transition group {% if lec.es_premium and usuario.plan != 'premium' %}border-slate-800 opacity-70 hover:border-amber-500/40{% else %}border-slate-800 hover:border-blue-500/40{% endif %}">
+    <div class="flex items-center space-x-4">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 {% if lec.es_premium and usuario.plan != 'premium' %}bg-amber-500/10 border border-amber-500/20{% else %}bg-blue-500/10 border border-blue-500/20{% endif %}">
+            {% if lec.es_premium and usuario.plan != 'premium' %}<span class="text-amber-400 text-lg">🔒</span>{% else %}<span class="text-blue-400 text-lg">📖</span>{% endif %}
+        </div>
+        <div>
+            <p class="text-white font-bold text-sm group-hover:text-blue-300 transition">{{ lec.titulo }}</p>
+            <p class="text-slate-500 text-xs mt-0.5">{{ lec.modulo }} · {% if lec.es_premium and usuario.plan != 'premium' %}<span class="text-amber-500 font-semibold">Premium</span>{% else %}<span class="text-emerald-500 font-semibold">Disponible</span>{% endif %}</p>
+        </div>
+    </div>
+    <span class="text-slate-600 group-hover:text-slate-400 transition text-lg">→</span>
+</a>
+{% else %}
+<div class="bg-slate-950 border border-slate-800 rounded-2xl p-10 text-center mt-6">
+    <p class="text-4xl mb-3">📚</p>
+    <p class="text-slate-400 text-sm">No hay lecciones aún.</p>
+</div>
+{% endfor %}
+{% endblock %}

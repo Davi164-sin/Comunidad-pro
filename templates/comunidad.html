@@ -1,0 +1,20 @@
+{% extends 'layout.html' %}
+{% block title %}Génesis - Comunidad{% endblock %}
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-extrabold text-white tracking-tight">Muro de la Comunidad</h1>
+    <p class="text-slate-400 mt-1">Comparte trucos, soluciones de código y debate con otros programadores.</p>
+</div>
+<div class="max-w-3xl space-y-6">
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl">
+        <form action="/comunidad_interactuar" method="POST" class="space-y-4">
+            <textarea name="contenido" rows="3" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-slate-200 focus:outline-none focus:border-emerald-500 transition placeholder-slate-600" placeholder="Comparte un fragmento de código o una duda técnica..." required></textarea>
+            <div class="flex justify-end">
+                <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold px-6 py-2.5 rounded-xl transition shadow-lg shadow-emerald-600/10">
+                    Publicar Aporte (+20 XP)
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

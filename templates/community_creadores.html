@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Directorio de Creadores - ComunidadPro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .hero { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 60px 0; margin-bottom: 40px; }
+        .card { border: none; border-radius: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: transform 0.2s; }
+        .card:hover { transform: translateY(-5px); }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{{ url_for('index') }}"><i class="fas fa-users text-primary me-2"></i>ComunidadPro</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="{{ url_for('creadores') }}">Creadores</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('recursos') }}">Recursos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('ranking_comunidad') }}">Ranking</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('chat_comunidad_vista') }}">Chat</a></li>
+                    {% if usuario %}
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard') }}">Panel</a></li>
+                        {% if usuario.rol == 'admin' %}
+                            <li class="nav-item"><a class="nav-link text-warning" href="{{ url_for('admin_panel') }}">Admin</a></li>
+                        {% endif %}
+                        <li class="nav-item"><a class="btn btn-outline-light btn-sm ms-2 mt-1" href="{{ url_for('logout') }}">Salir</a></li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">Iniciar Sesión</a></li>
+                        <li class="nav-item"><a class="btn btn-primary btn-sm ms-2 mt-1" href="{{ url_for('register') }}">Registrarse</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="hero text-center">
+        <div class="container">
+            <h1 class="display-5 fw-bold">Directorio de Creadores y Talentos</h1>
+            <p class="lead mt-2">Conoce el contenido, portafolios y proyectos de los creadores verificados de nuestra comunidad.</p>
+        </div>
+    </div>
+
+    <div class="container mb-5">
+        <!-- Buscador y Filtros -->
+        <div class="card p-4 mb-4 bg-white">
+            <form method="GET" action="{{ url_for('creadores') }}" class="row g-3">
+                <div class="col-md-6">
+                    <input type="text" name="q" class="form-control" placeholder="Buscar creador por nombre o descripción..." value="{{ busqueda }}">
+                </div>
+                <div class="col-md-4">
+                    <select name="categoria" class="form-select">
+                        <option value="">Todas las Categorías</option>
+                        <option value="Arte" {{ 'selected' if categoria_act == 'Arte' else '' }}>Arte</option>
+                        <option value="Tecnología" {{ 'selected' if categoria_act == 'Tecnología' else '' }}>Tecnología</option>
+                        <option value="Educación" {{ 'selected' if categoria_act == 'Educación' else '' }}>Educación</option>
+                        <option value="Streaming" {{ 'selected' if categoria_act == 'Streaming' else '' }}>Streaming</option>
+                        <option value="Diseño" {{ 'selected' if categoria_act == 'Diseño' else '' }}>Diseño</option>
+                        <option value="Contenido Exclusivo" {{ 'selected' if categoria_act == 'Contenido Exclusivo' else '' }}>Contenido Exclusivo</option>
+                        <option value="Otro" {{ 'selected' if categoria_act == 'Otro' else '' }}>Otro</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100"><i class="fas fa-search me-1"></i> Filtrar</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="row">
+            {% if creadores %}
+                {% for c in creadores %}
+                    <div class="col-md-4 mb-4">
+                        <div class="card p-4 h-100 bg-white d-flex flex-column">
+                            <div class="d-flex align-items-center mb-3">
+                                {% if c.avatar %}
+                                    <img src="{{ url_for('static', filename='uploads/' + c.avatar) }}" class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;">
+                                {% else %}
+                                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold fs-4 me-3" style="width: 60px; height: 60px;">
+                                        {{ c.nombre_artistico[0]|upper }}
+                                    </div>
+                                {% endif %}
+                                <div>
+                                    <h4 class="mb-0 fw-bold">{{ c.nombre_artistico }}</h4>
+                                    <span class="badge bg-secondary">{{ c.categoria }}</span>
+                                </div>
+                            </div>
+                            <p class="text-muted small flex-grow-1">{{ c.biografia or "Sin biografía disponible." }}</p>
+                            
+                            <a href="{{ url_for('detalle_creador', creador_id=c.id) }}" class="btn btn-primary w-100 rounded-pill mt-3">
+                                <i class="fas fa-user-circle me-1"></i> Ver Perfil Completo y Reseñas
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="col-12 text-center py-5">
+                    <h4 class="text-muted">No se encontraron creadores con los filtros seleccionados.</h4>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

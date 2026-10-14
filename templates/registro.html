@@ -1,0 +1,26 @@
+{% extends 'layout.html' %}
+{% block title %}Génesis - Registro de Desarrollador{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto my-12 bg-slate-950 border border-slate-800 rounded-2xl p-8 shadow-2xl">
+    <div class="mb-6 text-center">
+        <h2 class="text-2xl font-extrabold text-white tracking-tight">Registro Global</h2>
+        <p class="text-slate-400 mt-1 text-sm">Crea tu perfil de programador para empezar a sumar puntos.</p>
+    </div>
+    <form action="/registro" method="POST" class="space-y-4">
+        <div>
+            <label class="block text-xs text-slate-400 uppercase tracking-wider font-semibold mb-2">Nombre de Usuario</label>
+            <input type="text" name="username" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-slate-200 focus:outline-none focus:border-emerald-500 transition font-medium" placeholder="ej. david_dev" required>
+        </div>
+        <div>
+            <label class="block text-xs text-slate-400 uppercase tracking-wider font-semibold mb-2">Contraseña</label>
+            <input type="password" name="password" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-slate-200 focus:outline-none focus:border-emerald-500 transition" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-extrabold py-3 rounded-xl transition shadow-lg shadow-emerald-600/20 mt-2">
+            Crear Cuenta de Desarrollador
+        </button>
+    </form>
+    <p class="text-slate-500 text-xs text-center mt-6">
+        ¿Ya formas parte del ecosistema? <a href="/login" class="text-blue-400 hover:underline font-semibold">Inicia sesión</a>
+    </p>
+</div>
+{% endblock %}

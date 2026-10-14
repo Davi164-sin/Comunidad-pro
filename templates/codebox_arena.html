@@ -20,13 +20,10 @@
   }
   .hud-box { display: flex; flex-direction: column; }
   .label { font-size: 11px; font-weight: bold; color: #db9c22; letter-spacing: 0.5px; margin-bottom: 2px; }
-  .value { font-size: 20px; font-weight: bold; color: #ffffff; font-family: monospace; }
+  .value { font-size: 18px; font-weight: bold; color: #ffffff; font-family: monospace; }
 
-  .hp-bar-container { width: 140px; height: 10px; background: rgba(0,0,0,0.7); border: 1px solid #1c321d; border-radius: 5px; overflow: hidden; margin-bottom: 2px; }
+  .hp-bar-container { width: 130px; height: 10px; background: rgba(0,0,0,0.7); border: 1px solid #1c321d; border-radius: 5px; overflow: hidden; margin-bottom: 2px; }
   .hp-bar-fill { height: 100%; background: #00e676; width: 100%; transition: width 0.1s ease; box-shadow: 0 0 8px #00e676; }
-
-  .zone-bar-container { width: 100px; height: 10px; background: rgba(0,0,0,0.7); border: 1px solid #1c321d; border-radius: 5px; overflow: hidden; }
-  .zone-bar-fill { height: 100%; background: #ff3d00; width: 60%; box-shadow: 0 0 8px #ff3d00; }
 
   .stat-align { text-align: right; }
   .stat-kill { color: #ff3d00; text-shadow: 0 0 8px rgba(255,61,0,0.6); }
@@ -78,18 +75,18 @@
 
   <div id="hud">
     <div class="hud-box">
-      <div class="label">SALUD HP</div>
+      <div class="label">SALUD HP (+8 / KIL)</div>
       <div class="hp-bar-container"><div class="hp-bar-fill" id="hp-fill"></div></div>
       <div class="value" id="hp-val">100</div>
     </div>
-    <div class="hud-box" style="align-items: center;">
-      <div class="label">ZONA ELÉCTRICA</div>
-      <div class="zone-bar-container"><div class="zone-bar-fill" id="zone-fill"></div></div>
+    <div class="hud-box">
+      <div class="label">ARMA ACTIVA</div>
+      <div class="value" id="weapon-lvl" style="color: #ffff00;">Lvl 1 (Pistola)</div>
     </div>
     <div style="display: flex; gap: 20px;">
       <div class="hud-box stat-align">
-        <div class="label">JUGADORES</div>
-        <div class="value">LIVE</div>
+        <div class="label">ARENA</div>
+        <div class="value text-success">ONLINE</div>
       </div>
       <div class="hud-box stat-align">
         <div class="label">KILLS</div>
@@ -166,7 +163,7 @@
     window.addEventListener('resize', resize);
     resize();
 
-    // Jugador con gráficos mejorados
+    // Jugador
     const player = {
       x: window.innerWidth / 2,
       y: window.innerHeight / 2,
@@ -184,7 +181,22 @@
     let mobileFiring = false;
     let gameOver = false;
 
-    // Sistema de Partículas Avanzado (Mejores Gráficas)
+    // Sistema de Armas según Puntos/Kills
+    function getWeaponLevel() {
+      if (player.kills >= 10) return 3; // Triple Láser Difusor
+      if (player.kills >= 5) return 2;  // Doble Cañón Paralelo
+      return 1;                         // Pistola Estándar
+    }
+
+    function updateWeaponHud() {
+      const lvl = getWeaponLevel();
+      const el = document.getElementById('weapon-lvl');
+      if (lvl === 3) el.innerHTML = '<span style="color:#00ffff;">Lvl 3 (Triple Láser)</span>';
+      else if (lvl === 2) el.innerHTML = '<span style="color:#00e676;">Lvl 2 (Doble Cañón)</span>';
+      else el.innerHTML = '<span style="color:#ffff00;">Lvl 1 (Pistola)</span>';
+    }
+
+    // Partículas
     function spawnParticles(x, y, color, count = 10) {
       for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
@@ -201,7 +213,7 @@
       }
     }
 
-    // Generador de Enemigos con progresión
+    // Generador de Enemigos
     function spawnEnemy() {
       if (gameOver) return;
       if (enemies.length < 8) {
@@ -277,14 +289,49 @@
     let fireCooldown = 0;
     function shoot() {
       if (fireCooldown <= 0 && !gameOver) {
-        bullets.push({
-          x: player.x + Math.cos(player.angle) * 22,
-          y: player.y + Math.sin(player.angle) * 22,
-          vx: Math.cos(player.angle) * 12,
-          vy: Math.sin(player.angle) * 12,
-          radius: 4.5
-        });
-        fireCooldown = 12;
+        const lvl = getWeaponLevel();
+        if (lvl === 1) {
+          bullets.push({
+            x: player.x + Math.cos(player.angle) * 22,
+            y: player.y + Math.sin(player.angle) * 22,
+            vx: Math.cos(player.angle) * 12,
+            vy: Math.sin(player.angle) * 12,
+            radius: 4.5,
+            color: '#ffff00'
+          });
+          fireCooldown = 12;
+        } else if (lvl === 2) {
+          const perp = player.angle + Math.PI/2;
+          bullets.push({
+            x: player.x + Math.cos(player.angle) * 22 + Math.cos(perp) * 6,
+            y: player.y + Math.sin(player.angle) * 22 + Math.sin(perp) * 6,
+            vx: Math.cos(player.angle) * 13,
+            vy: Math.sin(player.angle) * 13,
+            radius: 4.5,
+            color: '#00e676'
+          });
+          bullets.push({
+            x: player.x + Math.cos(player.angle) * 22 - Math.cos(perp) * 6,
+            y: player.y + Math.sin(player.angle) * 22 - Math.sin(perp) * 6,
+            vx: Math.cos(player.angle) * 13,
+            vy: Math.sin(player.angle) * 13,
+            radius: 4.5,
+            color: '#00e676'
+          });
+          fireCooldown = 10;
+        } else {
+          [-0.2, 0, 0.2].forEach(offset => {
+            bullets.push({
+              x: player.x + Math.cos(player.angle) * 22,
+              y: player.y + Math.sin(player.angle) * 22,
+              vx: Math.cos(player.angle + offset) * 14,
+              vy: Math.sin(player.angle + offset) * 14,
+              radius: 5,
+              color: '#00ffff'
+            });
+          });
+          fireCooldown = 8;
+        }
       }
     }
 
@@ -303,6 +350,8 @@
 
       if (fireCooldown > 0) fireCooldown--;
       if (mobileFiring) shoot();
+
+      updateWeaponHud();
 
       // Proyectiles
       bullets = bullets.filter(b => {
@@ -332,6 +381,11 @@
             enemies.splice(eIdx, 1);
             bullets.splice(bIdx, 1);
             player.kills++;
+            
+            // CURAR VIDA POR CADA KILL (+8 HP, máximo 100)
+            player.hp = Math.min(100, player.hp + 8);
+            document.getElementById('hp-val').textContent = Math.floor(player.hp);
+            document.getElementById('hp-fill').style.width = player.hp + '%';
             document.getElementById('kills-val').textContent = player.kills;
           }
         });
@@ -385,7 +439,7 @@
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
       }
 
-      // Dibujar Partículas
+      // Partículas
       particles.forEach(p => {
         ctx.save();
         ctx.globalAlpha = p.alpha;
@@ -394,7 +448,7 @@
         ctx.restore();
       });
 
-      // Dibujar Enemigos con brillo neón
+      // Enemigos
       enemies.forEach(en => {
         ctx.save();
         ctx.shadowBlur = 12;
@@ -405,17 +459,17 @@
         ctx.restore();
       });
 
-      // Dibujar Proyectiles con estela luminosa
+      // Proyectiles
       ctx.save();
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = '#ffff00';
-      ctx.fillStyle = '#ffff00';
       bullets.forEach(b => {
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = b.color;
+        ctx.fillStyle = b.color;
         ctx.beginPath(); ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2); ctx.fill();
       });
       ctx.restore();
 
-      // DIBUJAR JUGADOR CON LUZ NEÓN
+      // Jugador
       ctx.save();
       ctx.translate(player.x, player.y);
       ctx.rotate(player.angle);
@@ -430,7 +484,6 @@
       ctx.lineWidth = 2.5;
       ctx.stroke();
 
-      // Cañón
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(10, -5, 14, 10);
       ctx.restore();

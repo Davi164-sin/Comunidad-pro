@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>CodeBox Game Arena - 1000 Ataques & Dificultad - {{ cfg.titulo_plataforma }}</title>
+<title>CodeBox Game Arena - Optimizado & Pausa - {{ cfg.titulo_plataforma }}</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
@@ -34,7 +34,7 @@
   .pc-tool-btn:hover { background: #00e676; color: #000; box-shadow: 0 0 10px #00e676; }
 
   /* PANEL DE HERRAMIENTAS / CONFIGURACIÓN PC */
-  #pcToolModal .modal-content { background: #0e1810; border: 2px solid #00e676; color: #fff; }
+  #pcToolModal .modal-content, #pauseModal .modal-card, #gameOverModal .modal-card { background: #0e1810; border: 2px solid #00e676; color: #fff; }
 
   /* ZONA DE CONTROLES TÁCTILES (Móvil) */
   #controls { position: absolute; bottom: 0; left: 0; width: 100%; height: 220px; pointer-events: none; z-index: 10; }
@@ -58,8 +58,8 @@
     pointer-events: auto; touch-action: none; box-shadow: 0 0 20px rgba(255,61,0,0.7);
   }
 
-  /* MODAL GAME OVER */
-  #gameOverModal {
+  /* MODAL PAUSA & GAME OVER */
+  #gameOverModal, #pauseModal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center;
     z-index: 100; backdrop-filter: blur(5px);
@@ -96,6 +96,7 @@
   </div>
 
   <div id="top-tools">
+    <button class="pc-tool-btn" onclick="togglePause()"><i class="fas fa-pause me-1"></i> Pausa</button>
     <button class="pc-tool-btn" data-bs-toggle="modal" data-bs-target="#pcToolModal"><i class="fas fa-tools me-1"></i> Herramientas PC</button>
     <button class="pc-tool-btn" data-bs-toggle="modal" data-bs-target="#rankingModal"><i class="fas fa-trophy me-1"></i> Competencia</button>
     <a href="{{ url_for('zona_juegos') }}" class="pc-tool-btn text-warning"><i class="fas fa-arrow-left me-1"></i> Salir</a>
@@ -108,10 +109,21 @@
     <div id="fb2">FUEGO</div>
   </div>
 
+  <!-- Modal Pausa -->
+  <div id="pauseModal">
+    <div class="modal-card">
+      <h2 class="text-warning fw-bold mb-3"><i class="fas fa-pause-circle me-2"></i>JUEGO EN PAUSA</h2>
+      <p class="text-muted mb-4">Tómate un respiro, estratega.</p>
+      <button class="btn btn-success btn-lg w-100 fw-bold mb-3 shadow" onclick="togglePause()">Continuar Partida</button>
+      <button class="btn btn-outline-warning btn-sm w-100 mb-2" onclick="location.reload()">Reiniciar Partida</button>
+      <a href="{{ url_for('zona_juegos') }}" class="btn btn-outline-danger btn-sm w-100">Salir al Menú</a>
+    </div>
+  </div>
+
   <!-- Modal Menú de Herramientas PC -->
   <div class="modal fade" id="pcToolModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
+      <div class="modal-content bg-dark border-success text-white">
         <div class="modal-header border-success">
           <h5 class="modal-title fw-bold text-success"><i class="fas fa-laptop-code me-2"></i>Menú de Herramientas PC & Config</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -122,11 +134,12 @@
             <li><strong>Moverse:</strong> Teclas <code>W</code>, <code>A</code>, <code>S</code>, <code>D</code> o Flechas del Teclado.</li>
             <li><strong>Apuntar:</strong> Mueve el <code>Cursor del Mouse</code> en tiempo real.</li>
             <li><strong>Disparar:</strong> Click Izquierdo del Mouse 🖱️ o Barra Espaciadora.</li>
-            <li><strong>Pantalla Completa:</strong> Presiona la tecla <code>F</code>.</li>
+            <li><strong>Pausar:</strong> Tecla <code>P</code> o Botón Superior.</li>
+            <li><strong>Pantalla Completa:</strong> Tecla <code>F</code>.</li>
           </ul>
 
           <h6 class="text-info fw-bold mb-2"><i class="fas fa-rocket me-1"></i> Sistema de 1000 Ataques & Dificultades:</h6>
-          <p class="small text-muted mb-3">El juego cuenta con un generador dinámico de hasta **1000 variantes de armas** (láseres, plasma, misiles, disparos múltiples) y **1000 niveles de dificultad progresiva** que escalan infinitamente con cada baja.</p>
+          <p class="small text-muted mb-3">Generador dinámico optimizado a 60 FPS para PC y móviles con **1000 variantes de armas** y **1000 niveles de dificultad**.</p>
 
           <div class="d-grid gap-2">
             <button class="btn btn-outline-success btn-sm" onclick="toggleFullscreen()"><i class="fas fa-expand me-1"></i> Alternar Pantalla Completa</button>
@@ -158,7 +171,7 @@
   <!-- Modal Competencia / Leaderboard -->
   <div class="modal fade" id="rankingModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
+      <div class="modal-content bg-dark border-success text-white">
         <div class="modal-header border-success">
           <h5 class="modal-title fw-bold text-success"><i class="fas fa-trophy me-2"></i>Ranking de Competencia CodeBox</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -201,13 +214,20 @@
       }
     }
 
+    let isPaused = false;
+    function togglePause() {
+      if (gameOver) return;
+      isPaused = !isPaused;
+      document.getElementById('pauseModal').style.display = isPaused ? 'flex' : 'none';
+    }
+
     // Jugador
     const player = {
       x: window.innerWidth / 2,
       y: window.innerHeight / 2,
       radius: 18,
       angle: 0,
-      speed: 4.8,
+      speed: 5.2,
       hp: 100,
       kills: 0
     };
@@ -219,6 +239,13 @@
     let mobileFiring = false;
     let gameOver = false;
 
+    // Elementos HUD cacheados para máxima fluidez en PC (60 FPS)
+    const hudWeapon = document.getElementById('weapon-name');
+    const hudDiff = document.getElementById('diff-val');
+    const hudHpVal = document.getElementById('hp-val');
+    const hudHpFill = document.getElementById('hp-fill');
+    const hudKills = document.getElementById('kills-val');
+
     // Controles de Teclado PC (WASD / Flechas)
     const keys = { w: false, a: false, s: false, d: false, arrowup: false, arrowdown: false, arrowleft: false, arrowright: false, space: false };
     let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2, mouseFiring = false;
@@ -229,7 +256,8 @@
       if (k === 's' || e.key === 'ArrowDown') keys.s = true;
       if (k === 'a' || e.key === 'ArrowLeft') keys.a = true;
       if (k === 'd' || e.key === 'ArrowRight') keys.d = true;
-      if (e.key === ' ' ) keys.space = true;
+      if (e.key === ' ') keys.space = true;
+      if (k === 'p' || e.key === 'Escape') togglePause();
       if (k === 'f') toggleFullscreen();
     });
 
@@ -255,36 +283,33 @@
       if (e.button === 0) mouseFiring = false;
     });
 
-    // GENERADOR DINÁMICO DE 1000 OPCIONES DE ATAQUE (ARMAS)
+    // GENERADOR DINÁMICO DE 1000 OPCIONES DE ATAQUE
     function getWeaponConfig() {
       const k = player.kills;
-      // 1000 variaciones basadas en el número de bajas
       const weaponIndex = Math.min(1000, k + 1);
       
       if (k >= 30) {
-        return { name: `Láser Hiper-Plasma #${weaponIndex}`, count: 7, spread: 0.35, speed: 16, radius: 6, color: '#ff00ff', cooldown: 6 };
+        return { name: `Láser Hiper-Plasma #${weaponIndex}`, count: 7, spread: 0.35, speed: 17, radius: 6, color: '#ff00ff', cooldown: 5 };
       } else if (k >= 20) {
-        return { name: `Cañón Cuádruple Óptico #${weaponIndex}`, count: 4, spread: 0.2, speed: 15, radius: 5.5, color: '#00ffff', cooldown: 8 };
+        return { name: `Cañón Cuádruple Óptico #${weaponIndex}`, count: 4, spread: 0.2, speed: 16, radius: 5.5, color: '#00ffff', cooldown: 7 };
       } else if (k >= 10) {
-        return { name: `Tridente de Fotones #${weaponIndex}`, count: 3, spread: 0.25, speed: 14, radius: 5, color: '#00e676', cooldown: 9 };
+        return { name: `Tridente de Fotones #${weaponIndex}`, count: 3, spread: 0.25, speed: 15, radius: 5, color: '#00e676', cooldown: 8 };
       } else if (k >= 5) {
-        return { name: `Doble Blaster Táctico #${weaponIndex}`, count: 2, spread: 0.1, speed: 13, radius: 4.5, color: '#ffff00', cooldown: 10 };
+        return { name: `Doble Blaster Táctico #${weaponIndex}`, count: 2, spread: 0.1, speed: 14, radius: 4.5, color: '#ffff00', cooldown: 9 };
       } else {
-        return { name: `Pistola Estándar #${weaponIndex}`, count: 1, spread: 0, speed: 12, radius: 4, color: '#ffffff', cooldown: 12 };
+        return { name: `Pistola Estándar #${weaponIndex}`, count: 1, spread: 0, speed: 13, radius: 4, color: '#ffffff', cooldown: 11 };
       }
     }
 
     function updateHud() {
       const w = getWeaponConfig();
-      document.getElementById('weapon-name').innerText = w.name;
-      
-      // 1000 Niveles de Dificultad Dinámica
+      hudWeapon.innerText = w.name;
       const diffLevel = Math.min(1000, Math.floor(player.kills * 1.5) + 1);
-      document.getElementById('diff-val').innerText = `Nivel ${diffLevel}`;
+      hudDiff.innerText = `Nivel ${diffLevel}`;
     }
 
-    // Partículas
-    function spawnParticles(x, y, color, count = 10) {
+    // Partículas optimizadas
+    function spawnParticles(x, y, color, count = 8) {
       for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
         const speed = Math.random() * 4 + 1;
@@ -292,17 +317,17 @@
           x: x, y: y,
           vx: Math.cos(angle) * speed,
           vy: Math.sin(angle) * speed,
-          radius: Math.random() * 3 + 1,
+          radius: Math.random() * 2.5 + 1,
           color: color,
           alpha: 1,
-          decay: Math.random() * 0.03 + 0.015
+          decay: Math.random() * 0.04 + 0.02
         });
       }
     }
 
-    // Generador de Enemigos con 1000 Niveles de Dificultad
+    // Generador de Enemigos
     function spawnEnemy() {
-      if (gameOver) return;
+      if (gameOver || isPaused) return;
       const diffLevel = Math.min(1000, Math.floor(player.kills * 1.5) + 1);
       const maxEnemies = Math.min(25, 6 + Math.floor(diffLevel / 10));
 
@@ -320,11 +345,11 @@
           y: spawnY,
           radius: 14,
           color: diffLevel > 50 ? '#ff0055' : '#ff3d00',
-          speed: 1.4 + (diffLevel * 0.015) + Math.random() * 0.5
+          speed: 1.5 + (diffLevel * 0.015) + Math.random() * 0.5
         });
       }
     }
-    setInterval(spawnEnemy, Math.max(400, 2000 - (player.kills * 15)));
+    setInterval(spawnEnemy, Math.max(350, 1800 - (player.kills * 15)));
 
     // Controles Táctiles (Joystick Móvil)
     const jz = document.getElementById('jz');
@@ -378,7 +403,7 @@
 
     let fireCooldown = 0;
     function shoot() {
-      if (fireCooldown <= 0 && !gameOver) {
+      if (fireCooldown <= 0 && !gameOver && !isPaused) {
         const w = getWeaponConfig();
         fireCooldown = w.cooldown;
 
@@ -410,7 +435,6 @@
             color: w.color
           });
         } else {
-          // Spread multiple bullets
           for (let i = 0; i < w.count; i++) {
             const spreadAngle = player.angle - w.spread/2 + (w.spread / (w.count - 1)) * i;
             bullets.push({
@@ -427,9 +451,8 @@
     }
 
     function update() {
-      if (gameOver) return;
+      if (gameOver || isPaused) return;
 
-      // Movimiento PC (WASD / Flechas) o Joystick Móvil
       let moveX = joyIn.x;
       let moveY = joyIn.y;
 
@@ -444,19 +467,13 @@
         const normY = moveY / (magnitude > 1 ? magnitude : 1);
         player.x += normX * player.speed;
         player.y += normY * player.speed;
-        if (joyIn.x === 0 && joyIn.y === 0 && !keys.w && !keys.s && !keys.a && !keys.d) {
-          // Mantener ángulo si no hay movimiento nuevo
-        } else if (keys.w || keys.a || keys.s || keys.d || keys.arrowup || keys.arrowdown || keys.arrowleft || keys.arrowright) {
+        if (keys.w || keys.a || keys.s || keys.d || keys.arrowup || keys.arrowdown || keys.arrowleft || keys.arrowright) {
           player.angle = Math.atan2(normY, normX);
         }
       }
 
-      // Apuntar con el Mouse en PC
       if (mouseX !== window.innerWidth/2 || mouseY !== window.innerHeight/2) {
-        if (keys.w || keys.a || keys.s || keys.d || keys.arrowup || keys.arrowdown || keys.arrowleft || keys.arrowright || mouseX || mouseY) {
-          // Si usa mouse, orientar hacia el mouse
-          player.angle = Math.atan2(mouseY - player.y, mouseX - player.x);
-        }
+        player.angle = Math.atan2(mouseY - player.y, mouseX - player.x);
       }
 
       player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
@@ -483,39 +500,41 @@
       particles = particles.filter(p => p.alpha > 0);
 
       // Enemigos
-      enemies.forEach((en, eIdx) => {
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        let en = enemies[i];
         const angleToPlayer = Math.atan2(player.y - en.y, player.x - en.x);
         en.x += Math.cos(angleToPlayer) * en.speed;
         en.y += Math.sin(angleToPlayer) * en.speed;
 
         // Balas vs Enemigos
-        bullets.forEach((b, bIdx) => {
+        for (let j = bullets.length - 1; j >= 0; j--) {
+          let b = bullets[j];
           if (Math.hypot(b.x - en.x, b.y - en.y) < en.radius + b.radius) {
-            spawnParticles(en.x, en.y, b.color, 14);
-            enemies.splice(eIdx, 1);
-            bullets.splice(bIdx, 1);
+            spawnParticles(en.x, en.y, b.color, 10);
+            enemies.splice(i, 1);
+            bullets.splice(j, 1);
             player.kills++;
             
-            // CURAR VIDA POR CADA KILL (+8 HP, máx 100)
+            // CURAR HP POR KILL (+8 HP)
             player.hp = Math.min(100, player.hp + 8);
-            document.getElementById('hp-val').textContent = Math.floor(player.hp);
-            document.getElementById('hp-fill').style.width = player.hp + '%';
-            document.getElementById('kills-val').textContent = player.kills;
+            hudHpVal.textContent = Math.floor(player.hp);
+            hudHpFill.style.width = player.hp + '%';
+            hudKills.textContent = player.kills;
+            break;
           }
-        });
+        }
 
         // Enemigo vs Jugador
-        if (Math.hypot(player.x - en.x, player.y - en.y) < player.radius + en.radius) {
+        if (enemies[i] && Math.hypot(player.x - enemies[i].x, player.y - enemies[i].y) < player.radius + enemies[i].radius) {
           player.hp = Math.max(0, player.hp - 0.6);
-          document.getElementById('hp-val').textContent = Math.floor(player.hp);
-          document.getElementById('hp-fill').style.width = player.hp + '%';
-          spawnParticles(player.x, player.y, '#00e676', 4);
+          hudHpVal.textContent = Math.floor(player.hp);
+          hudHpFill.style.width = player.hp + '%';
 
           if (player.hp <= 0 && !gameOver) {
             triggerGameOver();
           }
         }
-      });
+      }
     }
 
     function triggerGameOver() {
@@ -565,18 +584,18 @@
       // Enemigos
       enemies.forEach(en => {
         ctx.save();
-        ctx.shadowBlur = 12;
+        ctx.shadowBlur = 10;
         ctx.shadowColor = en.color;
         ctx.fillStyle = en.color;
         ctx.beginPath(); ctx.arc(en.x, en.y, en.radius, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.stroke();
         ctx.restore();
       });
 
       // Proyectiles
       ctx.save();
       bullets.forEach(b => {
-        ctx.shadowBlur = 12;
+        ctx.shadowBlur = 8;
         ctx.shadowColor = b.color;
         ctx.fillStyle = b.color;
         ctx.beginPath(); ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2); ctx.fill();
@@ -588,18 +607,18 @@
       ctx.translate(player.x, player.y);
       ctx.rotate(player.angle);
 
-      ctx.shadowBlur = 18;
+      ctx.shadowBlur = 15;
       ctx.shadowColor = '#00e676';
       ctx.fillStyle = '#00e676';
       ctx.beginPath();
       ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = 2;
       ctx.stroke();
 
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(10, -5, 14, 10);
+      ctx.fillRect(10, -4, 14, 8);
       ctx.restore();
     }
 

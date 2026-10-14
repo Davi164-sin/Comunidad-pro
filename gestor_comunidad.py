@@ -12,8 +12,9 @@ app.secret_key = os.environ.get("SECRET_KEY", "comunidad_secret_key_2026")
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "community_database.db")
-UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
+is_render = os.environ.get("RENDER") or not os.access(BASE_DIR, os.W_OK)
+DB_PATH = os.environ.get("DATABASE_PATH", os.path.join("/tmp", "community_database.db") if is_render else os.path.join(BASE_DIR, "community_database.db"))
+UPLOAD_FOLDER = os.path.join("/tmp", "uploads") if is_render else os.path.join(BASE_DIR, "static", "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.route('/uploads/<path:filename>')

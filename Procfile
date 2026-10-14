@@ -1,1 +1,1 @@
-web: python gestor_comunidad.py
+web: gunicorn gestor_comunidad:app

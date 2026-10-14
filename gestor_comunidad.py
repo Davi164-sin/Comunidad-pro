@@ -1066,5 +1066,7 @@ def almacenamiento_eliminar(archivo_id):
     return redirect(url_for('almacenamiento_vista'))
 
 if __name__ == '__main__':
-    print("Iniciando aplicación con Modo Oscuro, Encuestas, Moderadores y CSV...")
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    debug = os.environ.get("DEBUG", "False").lower() == "true"
+    print(f"Iniciando aplicación en puerto {port}...")
+    socketio.run(app, host='0.0.0.0', port=port, debug=debug)

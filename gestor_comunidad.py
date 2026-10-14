@@ -18,6 +18,8 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
+    if filename.startswith('http'):
+        return redirect(filename)
     return send_from_directory(UPLOAD_FOLDER, filename)
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp", "mp4", "webm", "ogg", "mov", "mkv", "avi", "mp3", "wav", "m4a", "aac", "pdf", "zip", "txt"}
@@ -237,6 +239,27 @@ def init_db():
             ("Comunidad de Creadores", "https://chat.whatsapp.com/ejemplo_creadores", "Espacio exclusivo para creadores verificados.", "WhatsApp")
         ]
         c.executemany("INSERT INTO enlaces_grupo (titulo, url, descripcion, categoria) VALUES (?, ?, ?, ?)", ejemplos)
+        conn.commit()
+
+    # Insertar recursos de ejemplo si está vacío
+    c.execute("SELECT COUNT(*) FROM recursos")
+    if c.fetchone()[0] == 0:
+        ejemplos_recursos = [
+            ("Big Buck Bunny (Video Demo)", "Cortometraje animado de demostración en alta definición.", "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4", "video"),
+            ("Elephants Dream (Video Demo)", "Primer cortometraje animado de Blender Foundation.", "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4", "video"),
+            ("Paisaje Natural (Imagen Demo)", "Fotografía de alta resolución de paisajes naturales.", "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800", "imagen")
+        ]
+        c.executemany("INSERT INTO recursos (titulo, descripcion, archivo, tipo) VALUES (?, ?, ?, ?)", ejemplos_recursos)
+        conn.commit()
+
+    # Insertar anuncios de ejemplo si está vacío
+    c.execute("SELECT COUNT(*) FROM anuncios")
+    if c.fetchone()[0] == 0:
+        ejemplos_anuncios = [
+            ("¡Bienvenido a ComunidadPro!", "Nos alegra tenerte en la comunidad líder de creadores y desarrolladores. Explora los recursos multimedia y chatea en tiempo real."),
+            ("Actualización del Sistema", "El sistema de almacenamiento y gestión de recursos está completamente operativo.")
+        ]
+        c.executemany("INSERT INTO anuncios (titulo, contenido) VALUES (?, ?)", ejemplos_anuncios)
         conn.commit()
 
     conn.close()

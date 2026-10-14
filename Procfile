@@ -1,1 +1,1 @@
-web: gunicorn gestor_comunidad:app
+web: gunicorn wsgi:app

@@ -1065,6 +1065,11 @@ def almacenamiento_eliminar(archivo_id):
     conn.close()
     return redirect(url_for('almacenamiento_vista'))
 
+@app.route('/cine')
+def cine_david():
+    user = get_current_user()
+    return render_template('cine_david.html', usuario=user)
+
 @app.route('/health')
 def health_check():
     try:

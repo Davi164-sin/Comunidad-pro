@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cine David - ComunidadPro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --cyan: #00d4ff;
+      --red: #ff3a3a;
+      --bg: #080808;
+      --card: #111;
+      --border: #1e1e1e;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; min-height: 100vh; }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at 20% 50%, rgba(0,212,255,0.04) 0%, transparent 60%),
+                  radial-gradient(ellipse at 80% 20%, rgba(255,58,58,0.04) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .container { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 20px 16px 40px; }
+    header { text-align: center; padding: 30px 0 24px; border-bottom: 1px solid var(--border); margin-bottom: 28px; }
+    header h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 3rem;
+      letter-spacing: 4px;
+      background: linear-gradient(135deg, #fff 30%, var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header p { color: #555; font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      letter-spacing: 1px;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.98); opacity: 0.9; }
+    .btn-primary { background: var(--cyan); color: #000; }
+    .btn-outline { background: transparent; color: var(--cyan); border: 1px solid var(--cyan); }
+    input[type="password"] {
+      width: 100%;
+      background: #0d0d0d;
+      border: 1px solid #2a2a2a;
+      color: #fff;
+      padding: 14px 16px;
+      border-radius: 10px;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus { border-color: var(--cyan); }
+    .box { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 24px; }
+    .box h2 { font-family: 'Bebas Neue', sans-serif; letter-spacing: 2px; color: var(--cyan); margin-bottom: 14px; }
+    #msg { padding: 12px 16px; border-radius: 10px; font-size: 0.85rem; margin-bottom: 16px; display: none; }
+    #msg.ok { background: rgba(0,212,255,0.1); border: 1px solid rgba(0,212,255,0.3); color: var(--cyan); }
+    #msg.err { background: rgba(255,58,58,0.1); border: 1px solid rgba(255,58,58,0.3); color: var(--red); }
+    .movies-title { font-family: 'Bebas Neue', sans-serif; letter-spacing: 3px; font-size: 1.2rem; color: #444; text-align: center; margin-bottom: 16px; }
+    .movie-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 16px; animation: fadeUp 0.4s ease both; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    video { width: 100%; display: block; background: #000; height: 200px; object-fit: cover; }
+    .movie-info { padding: 12px 14px; }
+    .movie-name { font-size: 0.85rem; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 10px; }
+    .movie-actions { display: flex; gap: 8px; }
+    .btn-download { flex: 1; padding: 10px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; text-align: center; text-decoration: none; background: var(--cyan); color: #000; display: block; }
+    #empty { text-align: center; color: #333; padding: 40px 0; }
+    #empty span { display: block; font-size: 2.5rem; margin-bottom: 10px; }
+    #logout-btn { color: #333; font-size: 0.8rem; text-align: center; margin-top: 12px; cursor: pointer; background: none; border: none; width: 100%; }
+    #logout-btn:hover { color: var(--red); }
+    .hidden { display: none !important; }
+    .loading { text-align: center; color: #333; padding: 30px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="mb-3">
+    <a href="{{ url_for('index') }}" class="text-decoration-none text-muted small"><i class="fas fa-arrow-left me-1"></i> Volver a ComunidadPro</a>
+  </div>
+  <header>
+    <h1>🎬 Cine David</h1>
+    <p>Streaming privado</p>
+  </header>
+
+  <div id="msg"></div>
+
+  <!-- LOGIN (solo para admin) -->
+  <div id="login-section" class="hidden">
+    <div class="box">
+      <h2>Acceso Admin</h2>
+      <input type="password" id="pwd-input" placeholder="Contraseña" />
+      <button class="btn btn-primary" onclick="login()">INICIAR SESIÓN</button>
+      <button class="btn btn-outline" onclick="cancelLogin()" style="margin-top:8px">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- PANEL ADMIN -->
+  <div id="admin-section" class="hidden">
+    <div class="box">
+      <h2>⚙️ Admin</h2>
+      <p style="color:#555; font-size:0.8rem; margin-bottom:12px">Para subir películas usa Termux:</p>
+      <div style="background:#0d0d0d; padding:12px; border-radius:8px; font-size:0.75rem; color:var(--cyan); font-family:monospace; word-break:break-all">
+        ia upload cine-david-peliculas "/sdcard/Download/PELICULA.mp4"
+      </div>
+      <button class="btn btn-outline" onclick="loadMovies()" style="margin-top:12px">🔄 Actualizar lista</button>
+      <button id="logout-btn" onclick="logout()">Cerrar sesión admin</button>
+    </div>
+  </div>
+
+  <!-- LISTA PELÍCULAS -->
+  <div class="movies-title">PELÍCULAS DISPONIBLES</div>
+  <div id="loading" class="loading">Cargando películas... 🎬</div>
+  <div id="empty" style="display:none"><span>📭</span>No hay películas aún</div>
+  <div id="movies-list"></div>
+
+  <!-- Botón admin oculto -->
+  <div style="text-align:center; margin-top:20px">
+    <button onclick="showLogin()" style="background:none; border:none; color:#1e1e1e; font-size:0.7rem; cursor:pointer">⚙</button>
+  </div>
+</div>
+
+<script>
+  const ARCHIVE_ID = 'cine-david-peliculas';
+  const PASSWORD = '123';
+
+  function showMsg(text, type) {
+    const m = document.getElementById('msg');
+    m.textContent = text;
+    m.className = type;
+    m.style.display = 'block';
+    setTimeout(() => m.style.display = 'none', 4000);
+  }
+
+  function showLogin() {
+    document.getElementById('login-section').classList.remove('hidden');
+  }
+
+  function cancelLogin() {
+    document.getElementById('login-section').classList.add('hidden');
+  }
+
+  function login() {
+    if (document.getElementById('pwd-input').value === PASSWORD) {
+      document.getElementById('login-section').classList.add('hidden');
+      document.getElementById('admin-section').classList.remove('hidden');
+      showMsg('✅ Modo admin activado', 'ok');
+    } else {
+      showMsg('Contraseña incorrecta', 'err');
+    }
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') login();
+  });
+
+  function logout() {
+    document.getElementById('admin-section').classList.add('hidden');
+    document.getElementById('pwd-input').value = '';
+  }
+
+  async function loadMovies() {
+    const list = document.getElementById('movies-list');
+    const empty = document.getElementById('empty');
+    const loading = document.getElementById('loading');
+
+    list.innerHTML = '';
+    loading.style.display = 'block';
+    empty.style.display = 'none';
+
+    try {
+      const r = await fetch(`https://archive.org/metadata/${ARCHIVE_ID}`);
+      const data = await r.json();
+      loading.style.display = 'none';
+
+      if (!data.files) { empty.style.display = 'block'; return; }
+
+      const videos = data.files.filter(f => /\.(mp4|mkv|webm|mov|avi)$/i.test(f.name));
+
+      if (videos.length === 0) { empty.style.display = 'block'; return; }
+
+      videos.forEach((f, i) => {
+        const url = `https://archive.org/download/${ARCHIVE_ID}/${encodeURIComponent(f.name)}`;
+        const nombre = f.name.replace(/^\d+_/, '').replace(/_/g, ' ');
+        const card = document.createElement('div');
+        card.className = 'movie-card';
+        card.style.animationDelay = (i * 0.07) + 's';
+        card.innerHTML = `
+          <video controls preload="none">
+            <source src="${url}">
+          </video>
+          <div class="movie-info">
+            <div class="movie-name">🎬 ${nombre}</div>
+            <div class="movie-actions">
+              <a class="btn-download" href="${url}" download="${f.name}">⬇️ Descargar</a>
+            </div>
+          </div>`;
+        list.appendChild(card);
+      });
+    } catch(e) {
+      loading.style.display = 'none';
+      showMsg('Error cargando películas', 'err');
+    }
+  }
+
+  window.onload = loadMovies;
+</script>
+</body>
+</html>

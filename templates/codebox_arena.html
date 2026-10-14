@@ -14,24 +14,31 @@
   /* HUD SUPERIOR INTERACTIVO */
   #hud {
     position: absolute; top: 0; left: 0; width: 100%; padding: 10px 15px;
-    display: flex; justify-content: space-between; align-items: flex-start;
+    display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;
+    padding-right: 340px;
     background: linear-gradient(to bottom, rgba(0,0,0,0.95), rgba(0,0,0,0));
     pointer-events: none; z-index: 10;
   }
-  .hud-box { display: flex; flex-direction: column; }
+  .hud-box { display: flex; flex-direction: column; background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(0,230,118,0.2); }
   .label { font-size: 10px; font-weight: bold; color: #db9c22; letter-spacing: 0.5px; margin-bottom: 2px; }
-  .value { font-size: 16px; font-weight: bold; color: #ffffff; font-family: monospace; }
+  .value { font-size: 15px; font-weight: bold; color: #ffffff; font-family: monospace; }
 
-  .hp-bar-container { width: 110px; height: 9px; background: rgba(0,0,0,0.7); border: 1px solid #1c321d; border-radius: 5px; overflow: hidden; margin-bottom: 2px; }
+  .hp-bar-container { width: 100px; height: 8px; background: rgba(0,0,0,0.7); border: 1px solid #1c321d; border-radius: 5px; overflow: hidden; margin-bottom: 2px; }
   .hp-bar-fill { height: 100%; background: #00e676; width: 100%; transition: width 0.1s ease; box-shadow: 0 0 8px #00e676; }
 
   .stat-align { text-align: right; }
   .stat-kill { color: #ff3d00; text-shadow: 0 0 8px rgba(255,61,0,0.6); }
 
   /* MENÚ DE HERRAMIENTAS PC & BOTONES */
-  #top-tools { position: absolute; top: 10px; right: 15px; z-index: 30; display: flex; gap: 8px; pointer-events: auto; }
-  .pc-tool-btn { background: rgba(17,29,19,0.9); border: 1px solid #00e676; color: #00e676; font-size: 13px; font-weight: bold; padding: 5px 10px; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+  #top-tools { position: absolute; top: 10px; right: 15px; z-index: 30; display: flex; gap: 6px; pointer-events: auto; background: rgba(11,17,14,0.8); padding: 4px; border-radius: 8px; border: 1px solid rgba(0,230,118,0.3); }
+  .pc-tool-btn { background: rgba(17,29,19,0.9); border: 1px solid #00e676; color: #00e676; font-size: 12px; font-weight: bold; padding: 5px 8px; border-radius: 6px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
   .pc-tool-btn:hover { background: #00e676; color: #000; box-shadow: 0 0 10px #00e676; }
+
+  @media (max-width: 992px) {
+    #hud { padding-right: 15px; padding-top: 55px; }
+    #top-tools { top: 8px; right: 8px; left: 8px; justify-content: space-around; background: rgba(11,17,14,0.95); }
+    .pc-tool-btn { font-size: 11px; padding: 4px 6px; }
+  }
 
   /* PANEL DE HERRAMIENTAS / CONFIGURACIÓN PC */
   #pcToolModal .modal-content, #pauseModal .modal-card, #gameOverModal .modal-card { background: #0e1810; border: 2px solid #00e676; color: #fff; }

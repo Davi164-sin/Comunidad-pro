@@ -148,6 +148,12 @@
           <h6 class="text-info fw-bold mb-2"><i class="fas fa-rocket me-1"></i> Sistema de 1000 Ataques & Dificultades:</h6>
           <p class="small text-muted mb-3">Generador dinámico optimizado a 60 FPS para PC y móviles con **1000 variantes de armas** y **1000 niveles de dificultad**.</p>
 
+          <div class="alert alert-warning p-2 small mb-3 border-warning bg-black text-warning fw-bold">
+            🔥 <strong>RETO CODEBOX (APUESTA):</strong><br>
+            • ¡Llega al <strong>Nivel 1000</strong> y gana <strong>10,000 puntos</strong>!<br>
+            • ¡Llega al <strong>Nivel 785+</strong> y gana <strong>2,500 puntos</strong>!
+          </div>
+
           <div class="d-grid gap-2">
             <button class="btn btn-outline-success btn-sm" onclick="toggleFullscreen()"><i class="fas fa-expand me-1"></i> Alternar Pantalla Completa</button>
             <button class="btn btn-outline-warning btn-sm" onclick="location.reload()"><i class="fas fa-redo me-1"></i> Reiniciar Partida</button>
@@ -546,21 +552,32 @@
 
     function triggerGameOver() {
       gameOver = true;
-      document.getElementById('finalKills').textContent = player.kills;
-      document.getElementById('finalPoints').textContent = player.kills * 2;
+      const diffLevel = Math.min(1000, Math.floor(player.kills * 1.5) + 1);
+      let estPoints = player.kills * 2;
+      if (diffLevel >= 1000) estPoints += 10000;
+      else if (diffLevel >= 785) estPoints += 2500;
+
+      document.getElementById('finalKills').textContent = `${player.kills} (Nivel ${diffLevel})`;
+      document.getElementById('finalPoints').textContent = estPoints;
       document.getElementById('gameOverModal').style.display = 'flex';
     }
 
     function enviarPuntuacion() {
+      const diffLevel = Math.min(1000, Math.floor(player.kills * 1.5) + 1);
       fetch('/juego-arena/guardar_score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kills: player.kills })
+        body: JSON.stringify({ kills: player.kills, diffLevel: diffLevel })
       })
       .then(res => res.json())
       .then(data => {
         if(data.status === 'success') {
-          alert('¡Puntuación guardada con éxito! Has ganado ' + data.puntos_ganados + ' puntos para la competencia.');
+          let msg = '¡Puntuación guardada con éxito!\n\n';
+          if (data.mensaje_reto) {
+            msg += data.mensaje_reto + '\n\n';
+          }
+          msg += 'Total ganado: ' + data.puntos_ganados + ' puntos de contribución.';
+          alert(msg);
           location.reload();
         }
       });

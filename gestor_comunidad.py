@@ -1230,7 +1230,20 @@ def juego_arena_guardar_score():
     
     data = request.json
     kills = int(data.get('kills', 0))
-    puntos_ganados = kills * 2
+    diff_level = int(data.get('diffLevel', min(1000, int(kills * 1.5) + 1)))
+    
+    puntos_base = kills * 2
+    bonus_reto = 0
+    mensaje_reto = ""
+    
+    if diff_level >= 1000:
+        bonus_reto = 10000
+        mensaje_reto = "🏆 ¡IMPRESIONANTE! ¡Alcanzaste el Nivel 1000 y ganaste el reto principal de 10,000 puntos!"
+    elif diff_level >= 785:
+        bonus_reto = 2500
+        mensaje_reto = "⭐ ¡EXCELENTE! ¡Llegaste al Nivel 785 o superior y ganaste el bono de 2,500 puntos!"
+    
+    puntos_ganados = puntos_base + bonus_reto
     
     conn = sqlite3.connect(DB_PATH)
     conn.execute("UPDATE usuarios SET puntos_contribucion = puntos_contribucion + ? WHERE id = ?", (puntos_ganados, user['id']))
@@ -1241,8 +1254,19 @@ def juego_arena_guardar_score():
     nuevo_total = c.fetchone()[0]
     conn.close()
     
-    crear_notificacion(user['id'], "CodeBox Game Arena", f"¡Partida terminada! Has conseguido {kills} bajas y ganado {puntos_ganados} puntos de contribución para la competencia.")
-    return jsonify({"status": "success", "kills": kills, "puntos_ganados": puntos_ganados, "nuevo_total": nuevo_total})
+    notif_msg = f"¡Partida terminada! Has conseguido {kills} bajas (Nivel {diff_level}) y ganado {puntos_ganados} puntos de contribución para la competencia."
+    if mensaje_reto:
+        notif_msg += f" {mensaje_reto}"
+    
+    crear_notificacion(user['id'], "CodeBox Game Arena - Reto", notif_msg)
+    return jsonify({
+        "status": "success", 
+        "kills": kills, 
+        "diffLevel": diff_level,
+        "puntos_ganados": puntos_ganados, 
+        "mensaje_reto": mensaje_reto,
+        "nuevo_total": nuevo_total
+    })
 
 @app.route('/health')
 def health_check():

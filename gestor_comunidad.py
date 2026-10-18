@@ -14,31 +14,37 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 is_render = os.environ.get("RENDER") or not os.access(BASE_DIR, os.W_OK)
 
-# Selección segura de base de datos y persistencia en Render
-env_db = os.environ.get("DATABASE_PATH")
-if env_db:
-    DB_PATH = env_db
-elif not is_render and os.access(BASE_DIR, os.W_OK):
+# Selección ultra-robusta de base de datos con fallback automático para evitar errores 500
+env_db = os.environ.get("DATABASE_PATH", "/data/community_database.db")
+DB_PATH = env_db
+
+try:
+    db_dir = os.path.dirname(DB_PATH)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
+    test_conn = sqlite3.connect(DB_PATH)
+    test_conn.close()
+except Exception as e:
+    print(f"⚠️ Advertencia: No se pudo usar {DB_PATH} ({e}). Usando base de datos local de respaldo.")
     DB_PATH = os.path.join(BASE_DIR, "community_database.db")
-else:
-    DB_PATH = os.path.join("/tmp", "community_database.db")
-
-try:
-    if os.path.dirname(DB_PATH):
+    try:
         os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-except Exception:
-    pass
+        test_conn = sqlite3.connect(DB_PATH)
+        test_conn.close()
+    except Exception:
+        DB_PATH = os.path.join("/tmp", "community_database.db")
 
-# Selección segura de carpeta de subidas (Uploads)
-if is_render or (env_db and "/data" in env_db):
-    UPLOAD_FOLDER = os.path.join("/data", "uploads")
-elif not is_render and os.access(os.path.join(BASE_DIR, "static"), os.W_OK):
-    UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
-else:
-    UPLOAD_FOLDER = os.path.join("/tmp", "uploads")
-
+# Selección segura de carpeta de subidas (Uploads) con fallback
 try:
+    if env_db and "/data" in env_db:
+        UPLOAD_FOLDER = os.path.join("/data", "uploads")
+    else:
+        UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    test_up = os.path.join(UPLOAD_FOLDER, ".test")
+    with open(test_up, "w") as f:
+        f.write("test")
+    os.remove(test_up)
 except Exception:
     UPLOAD_FOLDER = os.path.join("/tmp", "uploads")
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)

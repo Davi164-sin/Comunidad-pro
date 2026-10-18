@@ -16,7 +16,7 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 is_render = os.environ.get("RENDER") or not os.access(BASE_DIR, os.W_OK)
 
-# Selección garantizada y robusta de base de datos persistente en Render (/data) sin modificar el punto de montaje raíz
+# Selección robusta de base de datos persistente con prueba de escritura y fallback automático
 env_db = os.environ.get("DATABASE_PATH", "/data/community_database.db")
 if is_render:
     DB_PATH = "/data/community_database.db"
@@ -27,13 +27,32 @@ try:
     db_dir = os.path.dirname(DB_PATH)
     if db_dir and db_dir != "/data" and not os.path.exists(db_dir):
         os.makedirs(db_dir, exist_ok=True)
-    test_conn = sqlite3.connect(DB_PATH)
+    
+    test_conn = sqlite3.connect(DB_PATH, timeout=10.0)
+    test_conn.execute("CREATE TABLE IF NOT EXISTS _test_conn (id INTEGER);")
+    test_conn.commit()
     test_conn.close()
-    print(f"✅ Base de datos conectada correctamente en: {DB_PATH}")
+    print(f"✅ Base de datos conectada y verificada en: {DB_PATH}")
 except Exception as e:
-    print(f"⚠️ Error conectando a {DB_PATH}: {e}. Usando base local de respaldo.")
+    print(f"⚠️ No se pudo usar {DB_PATH} ({e}). Usando base de datos local en {BASE_DIR}")
     DB_PATH = os.path.join(BASE_DIR, "community_database.db")
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+
+# Activar WAL mode globalmente para prevenir "database is locked" con múltiples hilos en Gunicorn
+_original_sqlite_connect = sqlite3.connect
+def _safe_sqlite_connect(database, *args, **kwargs):
+    if database == DB_PATH or str(database).endswith('community_database.db'):
+        kwargs.setdefault('timeout', 30.0)
+        conn = _original_sqlite_connect(database, *args, **kwargs)
+        try:
+            conn.execute("PRAGMA journal_mode=WAL;")
+            conn.execute("PRAGMA synchronous=NORMAL;")
+        except Exception:
+            pass
+        return conn
+    return _original_sqlite_connect(database, *args, **kwargs)
+
+sqlite3.connect = _safe_sqlite_connect
 
 # Migración/Sincronización segura de datos locales a /data si fuera necesario
 local_fallback_db = os.path.join(BASE_DIR, "community_database.db")

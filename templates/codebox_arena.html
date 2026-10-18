@@ -780,27 +780,29 @@
         const speed = 16;
 
         if (inventory.plasmaRay) {
-          fireCooldown = 4; // Muy rápido y potente
-          [-0.3, -0.15, 0, 0.15, 0.3].forEach(angleOffset => {
+          fireCooldown = 6; // Fuego omnidireccional 360 grados (8 balas en círculo)
+          for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI * 2 / 8) * i;
             bullets.push({
-              x: player.x + Math.cos(player.angle + angleOffset) * 24,
-              y: player.y + Math.sin(player.angle + angleOffset) * 24,
-              vx: Math.cos(player.angle + angleOffset) * speed * 1.4,
-              vy: Math.sin(player.angle + angleOffset) * speed * 1.4,
+              x: player.x + Math.cos(angle) * 24,
+              y: player.y + Math.sin(angle) * 24,
+              vx: Math.cos(angle) * speed * 1.3,
+              vy: Math.sin(angle) * speed * 1.3,
               radius: 7, color: '#d500f9'
             });
-          });
+          }
         } else if (inventory.missileLauncher) {
-          fireCooldown = 6;
-          [-0.2, 0, 0.2].forEach(angleOffset => {
+          fireCooldown = 8; // Fuego en 4 direcciones diagonales principales
+          for (let i = 0; i < 4; i++) {
+            const angle = (Math.PI / 2) * i + (Math.PI / 4);
             bullets.push({
-              x: player.x + Math.cos(player.angle + angleOffset) * 24,
-              y: player.y + Math.sin(player.angle + angleOffset) * 24,
-              vx: Math.cos(player.angle + angleOffset) * speed * 1.2,
-              vy: Math.sin(player.angle + angleOffset) * speed * 1.2,
+              x: player.x + Math.cos(angle) * 24,
+              y: player.y + Math.sin(angle) * 24,
+              vx: Math.cos(angle) * speed * 1.2,
+              vy: Math.sin(angle) * speed * 1.2,
               radius: 8, color: '#ff6d00'
             });
-          });
+          }
         } else if (inventory.autoTurret) {
           fireCooldown = 7;
           [-0.15, 0, 0.15].forEach(angleOffset => {

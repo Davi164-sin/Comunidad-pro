@@ -12,6 +12,11 @@ venv_sync/
 static/uploads/*
 !static/uploads/.gitkeep
 
+# Node & Bundlers
+node_modules/
+.parcel-cache/
+dist/
+
 # IDEs
 .idea/
 .vscode/

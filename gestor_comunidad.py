@@ -13,9 +13,29 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 is_render = os.environ.get("RENDER") or not os.access(BASE_DIR, os.W_OK)
-DB_PATH = os.environ.get("DATABASE_PATH", os.path.join(BASE_DIR, "community_database.db"))
-UPLOAD_FOLDER = os.path.join("/data", "uploads") if is_render else os.path.join(BASE_DIR, "static", "uploads")
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# Selección segura de base de datos
+env_db = os.environ.get("DATABASE_PATH")
+if env_db and os.path.dirname(env_db) and os.path.exists(os.path.dirname(env_db)) and os.access(os.path.dirname(env_db), os.W_OK):
+    DB_PATH = env_db
+elif not is_render and os.access(BASE_DIR, os.W_OK):
+    DB_PATH = os.path.join(BASE_DIR, "community_database.db")
+else:
+    DB_PATH = os.path.join("/tmp", "community_database.db")
+
+# Selección segura de carpeta de subidas (Uploads)
+if os.path.exists("/data") and os.access("/data", os.W_OK):
+    UPLOAD_FOLDER = os.path.join("/data", "uploads")
+elif not is_render and os.access(os.path.join(BASE_DIR, "static"), os.W_OK):
+    UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
+else:
+    UPLOAD_FOLDER = os.path.join("/tmp", "uploads")
+
+try:
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+except Exception:
+    UPLOAD_FOLDER = os.path.join("/tmp", "uploads")
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):

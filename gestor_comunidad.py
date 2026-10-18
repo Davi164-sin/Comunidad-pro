@@ -1,6 +1,3 @@
-import eventlet
-eventlet.monkey_patch()
-
 import os
 import sqlite3
 import csv
@@ -12,7 +9,7 @@ from flask_socketio import SocketIO, emit
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "comunidad_secret_key_2026")
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 is_render = os.environ.get("RENDER") or not os.access(BASE_DIR, os.W_OK)

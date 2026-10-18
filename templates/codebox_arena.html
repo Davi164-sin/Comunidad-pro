@@ -456,7 +456,12 @@
       shield: false,
       speedBonus: 0,
       magnet: false,
-      quadGun: false
+      quadGun: false,
+      dualGun: false,
+      autoTurret: false,
+      missileLauncher: false,
+      plasmaRay: false,
+      titaniumArmor: false
     };
 
     const player = {
@@ -530,18 +535,29 @@
       if (mode === 1) document.getElementById('matchmakingStatus').textContent = '';
     }
 
-    // Actualización del Color del Héroe según Nivel y Monedas
+    // Actualización del Color del Héroe según Nivel y Monedas (Hasta 1000 niveles)
     function updateHeroColor() {
-      if (currentLevel >= 5 || coinsCollected >= 60) {
+      currentLevel = Math.min(1000, 1 + Math.floor(player.kills / 2) + Math.floor(coinsCollected / 3));
+
+      if (currentLevel >= 800 || coinsCollected >= 150) {
+        player.color = '#ffea00'; // Dorado Supremo
+        player.colorName = 'Dios Neón Supremo 👑';
+      } else if (currentLevel >= 500 || coinsCollected >= 100) {
+        player.color = '#ff0055'; // Magenta Furia
+        player.colorName = 'Furia Galáctica 💖';
+      } else if (currentLevel >= 250 || coinsCollected >= 70) {
+        player.color = '#00ffcc'; // Cian Neón
+        player.colorName = 'Cian Cibernético 💠';
+      } else if (currentLevel >= 100 || coinsCollected >= 45) {
         player.color = '#ffd700'; // Dorado
         player.colorName = 'Dorado Legendario 🟨';
-      } else if (currentLevel >= 4 || coinsCollected >= 40) {
+      } else if (currentLevel >= 50 || coinsCollected >= 30) {
         player.color = '#d500f9'; // Púrpura
         player.colorName = 'Púrpura Plasma 🟪';
-      } else if (currentLevel >= 3 || coinsCollected >= 25) {
+      } else if (currentLevel >= 20 || coinsCollected >= 15) {
         player.color = '#ff1744'; // Rojo
         player.colorName = 'Rojo Fuego 🟥';
-      } else if (currentLevel >= 2 || coinsCollected >= 10) {
+      } else if (currentLevel >= 5 || coinsCollected >= 5) {
         player.color = '#00e5ff'; // Azul
         player.colorName = 'Azul Eléctrico 🟦';
       } else {
@@ -552,7 +568,7 @@
       document.getElementById('hud-hero-color').textContent = player.colorName;
       document.getElementById('hud-hero-color').style.color = player.color;
       document.getElementById('hud-coins').textContent = coinsCollected;
-      document.getElementById('diff-val').textContent = `Nivel ${currentLevel}`;
+      document.getElementById('diff-val').textContent = `Nivel ${currentLevel} / 1000`;
       const dashCoins = document.getElementById('dashCoins');
       if (dashCoins) dashCoins.textContent = coinsCollected;
     }
@@ -824,6 +840,24 @@
         if (Math.hypot(player.x - coins[i].x, player.y - coins[i].y) < player.radius + 14) {
           coins.splice(i, 1);
           coinsCollected++;
+
+          if (coinsCollected === 3) {
+            inventory.dualGun = true;
+            alert('⚡ ¡Arma Desbloqueada por Monedas!: Doble Bláster Neón');
+          } else if (coinsCollected === 8) {
+            inventory.autoTurret = true;
+            alert('🛡️ ¡Defensa Desbloqueada por Monedas!: Torreta Automática');
+          } else if (coinsCollected === 15) {
+            inventory.missileLauncher = true;
+            alert('🚀 ¡Arma Avanzada Desbloqueada por Monedas!: Lanzamisiles Antibichos');
+          } else if (coinsCollected === 25) {
+            inventory.plasmaRay = true;
+            alert('💥 ¡Arma Definitiva Desbloqueada por Monedas!: Rayo Láser de Plasma');
+          } else if (coinsCollected === 40) {
+            inventory.titaniumArmor = true;
+            alert('🛡️ ¡Defensa Máxima Desbloqueada por Monedas!: Armadura de Titanio');
+          }
+
           updateHeroColor();
         }
       }

@@ -1141,26 +1141,50 @@
         ctx.restore();
       }
 
-      // Jugador (Color dinámico con halo y parpadeo al recibir daño)
+      // Jugador (Vehículo Carro de Combate 360 con Nombre de Usuario)
       if (player.hitTimer <= 0 || Math.floor(player.hitTimer / 5) % 2 === 0) {
         ctx.save();
         ctx.translate(player.x, player.y);
+        
+        // Renderizar Nombre de Usuario flotando sobre el carro
+        ctx.save();
+        ctx.fillStyle = '#00e676';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.shadowBlur = 6; ctx.shadowColor = '#000';
+        ctx.fillText("{{ usuario.nombre if usuario else 'Jugador' }}", 0, -32);
+        ctx.restore();
+
+        // Rotación 360 grados del carro hacia el objetivo
         ctx.rotate(player.angle);
 
         ctx.shadowBlur = 15;
         ctx.shadowColor = player.color;
-        ctx.fillStyle = player.color;
-        ctx.beginPath(); ctx.arc(0, 0, player.radius, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
 
-        // Cañón arma
+        // 4 Ruedas del Carro
+        ctx.fillStyle = '#111827';
+        ctx.fillRect(-18, -19, 12, 7);
+        ctx.fillRect(6, -19, 12, 7);
+        ctx.fillRect(-18, 12, 12, 7);
+        ctx.fillRect(6, 12, 12, 7);
+
+        // Chasis del Carro
+        ctx.fillStyle = player.color;
+        ctx.beginPath(); ctx.roundRect(-22, -13, 44, 26, 6); ctx.fill();
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.stroke();
+
+        // Cabina / Parabrisas
+        ctx.fillStyle = '#0284c7';
+        ctx.beginPath(); ctx.roundRect(-4, -9, 16, 18, 3); ctx.fill();
+
+        // Cañón del Carro
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(10, -4, 14, 8);
+        ctx.fillRect(6, -4, 18, 8);
 
         // Si tiene escudo activo
         if (inventory.shield) {
           ctx.strokeStyle = '#00ffff'; ctx.lineWidth = 3;
-          ctx.beginPath(); ctx.arc(0, 0, player.radius + 6, 0, Math.PI * 2); ctx.stroke();
+          ctx.beginPath(); ctx.arc(0, 0, player.radius + 8, 0, Math.PI * 2); ctx.stroke();
         }
         ctx.restore();
       }

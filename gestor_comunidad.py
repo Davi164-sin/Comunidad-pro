@@ -2,21 +2,26 @@ import os
 import sqlite3
 import csv
 import io
+import shutil
 from flask import Flask, render_template, request, redirect, url_for, flash, session, Response, jsonify, send_from_directory
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from flask_socketio import SocketIO, emit
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "comunidad_secret_key_2026")
+# Usar SECRET_KEY fija de entorno o clave persistente de producción para evitar cierre de sesión al reiniciar
+app.secret_key = os.environ.get("SECRET_KEY", "comunidad_pro_prod_static_secret_key_2026_x9z8y7")
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 is_render = os.environ.get("RENDER") or not os.access(BASE_DIR, os.W_OK)
 
-# Selección ultra-robusta de base de datos con fallback automático para evitar errores 500
+# Selección garantizada y robusta de base de datos persistente en Render (/data)
 env_db = os.environ.get("DATABASE_PATH", "/data/community_database.db")
-DB_PATH = env_db
+if is_render and not env_db.startswith("/data"):
+    DB_PATH = "/data/community_database.db"
+else:
+    DB_PATH = env_db
 
 try:
     db_dir = os.path.dirname(DB_PATH)
@@ -24,19 +29,36 @@ try:
         os.makedirs(db_dir, exist_ok=True)
     test_conn = sqlite3.connect(DB_PATH)
     test_conn.close()
+    print(f"✅ Base de datos conectada correctamente en: {DB_PATH}")
 except Exception as e:
-    print(f"⚠️ Advertencia: No se pudo usar {DB_PATH} ({e}). Usando base de datos local de respaldo.")
-    DB_PATH = os.path.join(BASE_DIR, "community_database.db")
+    print(f"⚠️ Advertencia con {DB_PATH} ({e}). Asegurando directorio /data...")
     try:
-        os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+        os.makedirs("/data", exist_ok=True)
+        DB_PATH = "/data/community_database.db"
         test_conn = sqlite3.connect(DB_PATH)
         test_conn.close()
     except Exception:
-        DB_PATH = os.path.join("/tmp", "community_database.db")
+        DB_PATH = os.path.join(BASE_DIR, "community_database.db")
+        os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
-# Selección segura de carpeta de subidas (Uploads) con fallback
+# Migración/Sincronización segura de datos locales a /data si fuera necesario
+local_fallback_db = os.path.join(BASE_DIR, "community_database.db")
+if DB_PATH == "/data/community_database.db" and os.path.exists(local_fallback_db) and local_fallback_db != DB_PATH:
+    try:
+        conn_target = sqlite3.connect(DB_PATH)
+        c_target = conn_target.cursor()
+        c_target.execute("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='usuarios'")
+        has_table = c_target.fetchone()[0] > 0
+        conn_target.close()
+        if not has_table and os.path.getsize(local_fallback_db) > 0:
+            print("📦 Sincronizando base de datos existente hacia el disco persistente /data...")
+            shutil.copy2(local_fallback_db, DB_PATH)
+    except Exception as ex:
+        print(f"Nota en sincronización de DB: {ex}")
+
+# Selección segura de carpeta de subidas (Uploads) persistente
 try:
-    if env_db and "/data" in env_db:
+    if "/data" in DB_PATH:
         UPLOAD_FOLDER = os.path.join("/data", "uploads")
     else:
         UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")

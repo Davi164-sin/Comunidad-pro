@@ -12,6 +12,6 @@ services:
       - key: PYTHON_VERSION
         value: 3.10.0
       - key: SECRET_KEY
-        generateValue: true
+        value: "comunidad_pro_prod_static_secret_key_2026_x9z8y7"
       - key: DATABASE_PATH
         value: /data/community_database.db

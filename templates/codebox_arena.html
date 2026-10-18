@@ -60,24 +60,26 @@
   .modal-content { background: #0c1810; border: 1.5px solid #00e676; color: #fff; border-radius: 14px; }
   .modal-card { background: #0c1810; border: 2px solid #00e676; border-radius: 1.5rem; padding: 25px; width: 90%; max-width: 440px; text-align: center; color: white; box-shadow: 0 0 30px rgba(0,230,118,0.3); }
 
-  /* ZONA DE CONTROLES TÁCTILES */
-  #controls { position: absolute; bottom: 0; left: 0; width: 100%; height: 200px; pointer-events: none; z-index: 10; }
+  /* ZONA DE CONTROLES TÁCTILES MÓVIL OPTIMIZADA */
+  #controls { position: absolute; bottom: 0; left: 0; width: 100%; height: 180px; pointer-events: none; z-index: 10; }
   #jz {
-    position: absolute; bottom: 25px; left: 25px; width: 90px; height: 90px;
-    border-radius: 50%; border: 3px solid #283729; background: rgba(14,24,15,0.7);
+    position: absolute; bottom: 20px; left: 20px; width: 110px; height: 110px;
+    border-radius: 50%; border: 3px solid rgba(0,230,118,0.5); background: rgba(14,24,15,0.5);
     pointer-events: auto; touch-action: none; display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
   }
   #jk {
-    width: 35px; height: 35px; border-radius: 50%;
-    background: radial-gradient(circle, #ff6d00 0%, #bf360c 100%);
-    border: 2px solid #ffffff; position: absolute; top: 25px; left: 25px; pointer-events: none;
+    width: 45px; height: 45px; border-radius: 50%;
+    background: radial-gradient(circle, #00e676 0%, #059669 100%);
+    border: 2px solid #ffffff; position: absolute; top: 32px; left: 32px; pointer-events: none;
   }
   #fb2 {
-    position: absolute; bottom: 30px; right: 25px; width: 75px; height: 75px;
+    position: absolute; bottom: 20px; right: 20px; width: 85px; height: 85px;
     border-radius: 50%; background: radial-gradient(circle, #ff3d00 0%, #b71c1c 100%);
-    border: 3px solid #ffffff; color: #ffffff; font-size: 14px; font-weight: bold;
+    border: 3px solid #ffffff; color: #ffffff; font-size: 13px; font-weight: bold;
     display: flex; align-items: center; justify-content: center;
-    pointer-events: auto; touch-action: none; box-shadow: 0 0 15px rgba(255,61,0,0.6);
+    pointer-events: auto; touch-action: none; box-shadow: 0 0 20px rgba(255,61,0,0.7);
+    backdrop-filter: blur(4px);
   }
 
   /* MODAL PAUSA & RETO */

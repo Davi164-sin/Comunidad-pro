@@ -14,17 +14,23 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 is_render = os.environ.get("RENDER") or not os.access(BASE_DIR, os.W_OK)
 
-# Selección segura de base de datos
+# Selección segura de base de datos y persistencia en Render
 env_db = os.environ.get("DATABASE_PATH")
-if env_db and os.path.dirname(env_db) and os.path.exists(os.path.dirname(env_db)) and os.access(os.path.dirname(env_db), os.W_OK):
+if env_db:
     DB_PATH = env_db
 elif not is_render and os.access(BASE_DIR, os.W_OK):
     DB_PATH = os.path.join(BASE_DIR, "community_database.db")
 else:
     DB_PATH = os.path.join("/tmp", "community_database.db")
 
+try:
+    if os.path.dirname(DB_PATH):
+        os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+except Exception:
+    pass
+
 # Selección segura de carpeta de subidas (Uploads)
-if os.path.exists("/data") and os.access("/data", os.W_OK):
+if is_render or (env_db and "/data" in env_db):
     UPLOAD_FOLDER = os.path.join("/data", "uploads")
 elif not is_render and os.access(os.path.join(BASE_DIR, "static"), os.W_OK):
     UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
@@ -1309,6 +1315,36 @@ def init_db_command():
     """Inicializa la base de datos de la comunidad."""
     init_db()
     print("Base de datos inicializada correctamente.")
+
+# 1v1 Realtime Multiplayer Arena Socket Events
+waiting_player = None
+
+@socketio.on('join_arena_1v1')
+def handle_join_arena(data):
+    global waiting_player
+    user_name = data.get('nombre', 'Jugador')
+    sid = request.sid
+    if waiting_player and waiting_player['sid'] != sid:
+        room = f"room_{waiting_player['sid']}_{sid}"
+        socketio.server.enter_room(waiting_player['sid'], room)
+        socketio.server.enter_room(sid, room)
+        
+        match_data = {
+            'room': room,
+            'player1': waiting_player['nombre'],
+            'player2': user_name
+        }
+        socketio.emit('start_1v1_match', match_data, room=room)
+        waiting_player = None
+    else:
+        waiting_player = {'sid': sid, 'nombre': user_name}
+        emit('waiting_for_opponent', {'message': 'Buscando oponente 1v1 en línea...'})
+
+@socketio.on('player_action_1v1')
+def handle_player_action(data):
+    room = data.get('room')
+    if room:
+        emit('opponent_action', data, room=room, include_self=False)
 
 @app.cli.command("db-stats")
 def db_stats_command():

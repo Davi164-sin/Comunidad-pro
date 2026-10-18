@@ -113,6 +113,10 @@
       <div class="label">BAJAS BICHOS</div>
       <div class="value text-danger" id="kills-val">0</div>
     </div>
+    <div class="hud-box">
+      <div class="label">ARMA ACTIVA</div>
+      <div class="value text-success" id="hud-weapon">Pistola Base</div>
+    </div>
   </div>
 
   <!-- MENÚ DESPLEGABLE COMPACTO DE HERRAMIENTAS -->
@@ -569,6 +573,14 @@
       document.getElementById('hud-hero-color').style.color = player.color;
       document.getElementById('hud-coins').textContent = coinsCollected;
       document.getElementById('diff-val').textContent = `Nivel ${currentLevel} / 1000`;
+      
+      let weaponName = 'Pistola Base 🔫';
+      if (inventory.plasmaRay) weaponName = 'Rayo de Plasma 💥';
+      else if (inventory.missileLauncher) weaponName = 'Lanzamisiles 🚀';
+      else if (inventory.autoTurret) weaponName = 'Torreta Automática 🛡️';
+      else if (inventory.dualGun) weaponName = 'Doble Bláster ⚡';
+      document.getElementById('hud-weapon').textContent = weaponName;
+
       const dashCoins = document.getElementById('dashCoins');
       if (dashCoins) dashCoins.textContent = coinsCollected;
     }

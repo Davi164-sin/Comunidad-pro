@@ -1306,7 +1306,7 @@ def health_check():
         c = conn.cursor()
         c.execute("SELECT 1")
         conn.close()
-        return jsonify({"status": "ok", "database": "connected"}), 200
+        return jsonify({"status": "ok", "database": "connected", "db_path": DB_PATH}), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 

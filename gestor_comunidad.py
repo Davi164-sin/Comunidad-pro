@@ -52,13 +52,23 @@ def _safe_sqlite_connect(database, *args, **kwargs):
         return conn
     return _original_sqlite_connect(database, *args, **kwargs)
 
-sqlite3.connect = _safe_sqlite_connect
+
+def get_db_connection():
+    conn = sqlite3.connect(DB_PATH, timeout=30.0)
+    conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
+    except Exception:
+        pass
+    return conn
+
 
 # Migración/Sincronización segura de datos locales a /data si fuera necesario
 local_fallback_db = os.path.join(BASE_DIR, "community_database.db")
 if DB_PATH == "/data/community_database.db" and os.path.exists(local_fallback_db) and local_fallback_db != DB_PATH:
     try:
-        conn_target = sqlite3.connect(DB_PATH)
+        conn_target = get_db_connection()
         c_target = conn_target.cursor()
         c_target.execute("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='usuarios'")
         has_table = c_target.fetchone()[0] > 0
@@ -96,7 +106,7 @@ def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     # Tabla de usuarios
     c.execute('''
@@ -396,7 +406,7 @@ init_db()
 @app.context_processor
 def inject_config():
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection()
         conn.row_factory = sqlite3.Row
         rows = conn.execute("SELECT clave, valor FROM configuracion_plataforma").fetchall()
         conn.close()
@@ -414,7 +424,7 @@ def inject_config():
 
 def get_current_user():
     if "user_id" in session:
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection()
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         c.execute("SELECT * FROM usuarios WHERE id = ?", (session["user_id"],))
@@ -425,7 +435,7 @@ def get_current_user():
     return None
 
 def crear_notificacion(usuario_id, titulo, mensaje):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute("INSERT INTO notificaciones (usuario_id, titulo, mensaje) VALUES (?, ?, ?)", (usuario_id, titulo, mensaje))
     conn.commit()
@@ -433,7 +443,7 @@ def crear_notificacion(usuario_id, titulo, mensaje):
 
 @app.route('/')
 def index():
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT * FROM anuncios ORDER BY creado_en DESC LIMIT 5")
@@ -458,7 +468,7 @@ def index():
 
 @app.route('/ranking')
 def ranking_comunidad():
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT * FROM usuarios ORDER BY puntos_contribucion DESC")
@@ -472,7 +482,7 @@ def about():
 
 @app.route('/recursos')
 def recursos():
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT * FROM recursos ORDER BY creado_en DESC")
@@ -491,7 +501,7 @@ def encuestas_vista():
         opcion_id = request.form.get('opcion_id')
         if encuesta_id and opcion_id:
             try:
-                conn = sqlite3.connect(DB_PATH)
+                conn = get_db_connection()
                 c = conn.cursor()
                 c.execute("INSERT INTO votos_encuesta (encuesta_id, usuario_id, opcion_id) VALUES (?, ?, ?)",
                           (encuesta_id, user['id'], opcion_id))
@@ -503,7 +513,7 @@ def encuestas_vista():
                 flash("Ya has votado en esta encuesta.", "error")
         return redirect(url_for('encuestas_vista'))
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT * FROM encuestas ORDER BY creado_en DESC")
@@ -528,7 +538,7 @@ def chat_comunidad_vista():
     if not user:
         flash("Inicia sesión para acceder al chat.", "error")
         return redirect(url_for('login'))
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT * FROM chat_comunidad ORDER BY creado_en DESC LIMIT 50")
@@ -544,7 +554,7 @@ def handle_mensaje(data):
     archivo = data.get('archivo')
     tipo_archivo = data.get('tipo_archivo')
     if (mensaje or archivo) and usuario_nombre:
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection()
         c = conn.cursor()
         c.execute("INSERT INTO chat_comunidad (usuario_id, usuario_nombre, mensaje, archivo, tipo_archivo) VALUES (?, ?, ?, ?, ?)",
                   (usuario_id, usuario_nombre, mensaje or "", archivo, tipo_archivo))
@@ -566,7 +576,7 @@ def handle_eliminar_mensaje(data):
     mensaje_id = data.get('mensaje_id')
     usuario_id = data.get('usuario_id')
     if mensaje_id and usuario_id:
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection()
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         c.execute("SELECT * FROM chat_comunidad WHERE id = ?", (mensaje_id,))
@@ -591,7 +601,7 @@ def reportar_contenido():
     item_id = request.form.get('item_id')
     motivo = request.form.get('motivo')
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute("INSERT INTO reportes (tipo, item_id, usuario_id, usuario_nombre, motivo) VALUES (?, ?, ?, ?, ?)",
               (tipo, item_id, user['id'], user['nombre'], motivo))
@@ -631,7 +641,7 @@ def login():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection()
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         c.execute("SELECT * FROM usuarios WHERE email = ?", (email,))
@@ -658,7 +668,7 @@ def register():
             return redirect(url_for('register'))
         hashed_pw = generate_password_hash(password)
         try:
-            conn = sqlite3.connect(DB_PATH)
+            conn = get_db_connection()
             c = conn.cursor()
             c.execute("INSERT INTO usuarios (nombre, email, password, rol, puntos_contribucion) VALUES (?, ?, ?, 'miembro', 0)",
                       (nombre, email, hashed_pw))
@@ -683,7 +693,7 @@ def dashboard():
         flash("Inicia sesión para continuar.", "error")
         return redirect(url_for('login'))
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT * FROM enlaces_grupo")
@@ -707,7 +717,7 @@ def creadores():
     busqueda = request.args.get('q', '').strip()
     categoria = request.args.get('categoria', '').strip()
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     
@@ -729,7 +739,7 @@ def creadores():
 
 @app.route('/creador/<int:creador_id>')
 def detalle_creador(creador_id):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT c.*, u.email FROM creadores c JOIN usuarios u ON c.usuario_id = u.id WHERE c.id = ?", (creador_id,))
@@ -760,7 +770,7 @@ def dejar_resena(creador_id):
     calificacion = int(request.form.get('calificacion', 5))
     comentario = request.form.get('comentario', '')
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute("INSERT INTO resenas (creador_id, usuario_id, usuario_nombre, calificacion, comentario) VALUES (?, ?, ?, ?, ?)",
               (creador_id, user['id'], user['nombre'], calificacion, comentario))
@@ -784,7 +794,7 @@ def donar_creador(creador_id):
     monto = float(request.form.get('monto', 5.0))
     mensaje = request.form.get('mensaje', '')
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute("INSERT INTO donaciones (creador_id, usuario_id, usuario_nombre, monto, mensaje) VALUES (?, ?, ?, ?, ?)",
               (creador_id, user['id'], user['nombre'], monto, mensaje))
@@ -806,7 +816,7 @@ def registrar_creador():
         flash("Inicia sesión para registrar tu perfil de creador.", "error")
         return redirect(url_for('login'))
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT * FROM creadores WHERE usuario_id = ?", (user['id'],))
@@ -860,7 +870,7 @@ def admin_panel():
         flash("Acceso denegado.", "error")
         return redirect(url_for('index'))
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT * FROM usuarios ORDER BY puntos_contribucion DESC")
@@ -887,7 +897,7 @@ def admin_cambiar_rol(uid):
     if not user or user['rol'] != 'admin':
         return redirect(url_for('index'))
     nuevo_rol = request.form.get('rol')
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute("UPDATE usuarios SET rol = ? WHERE id = ?", (nuevo_rol, uid))
     conn.commit()
@@ -901,7 +911,7 @@ def admin_sumar_puntos(uid):
     if not user or user['rol'] not in ['admin', 'moderador']:
         return redirect(url_for('index'))
     puntos = int(request.form.get('puntos', 10))
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute("UPDATE usuarios SET puntos_contribucion = puntos_contribucion + ? WHERE id = ?", (puntos, uid))
     conn.commit()
@@ -917,7 +927,7 @@ def admin_revisar_creador(creador_id, accion):
         return redirect(url_for('index'))
     
     nuevo_estado = 'aprobado' if accion == 'aprobar' else 'rechazado'
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute("UPDATE creadores SET estado_aprobacion = ? WHERE id = ?", (nuevo_estado, creador_id))
     
@@ -945,7 +955,7 @@ def admin_crear_encuesta():
     opciones = request.form.getlist('opciones')
     
     if pregunta and opciones:
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection()
         c = conn.cursor()
         c.execute("INSERT INTO encuestas (pregunta) VALUES (?)", (pregunta,))
         encuesta_id = c.lastrowid
@@ -962,7 +972,7 @@ def admin_cerrar_encuesta(encuesta_id):
     user = get_current_user()
     if not user or user['rol'] not in ['admin', 'moderador']:
         return redirect(url_for('index'))
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute("UPDATE encuestas SET activa = 0 WHERE id = ?", (encuesta_id,))
     conn.commit()
@@ -976,7 +986,7 @@ def admin_exportar_csv(tipo):
     if not user or user['rol'] not in ['admin', 'moderador']:
         return redirect(url_for('index'))
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     
@@ -1019,7 +1029,7 @@ def admin_agregar_enlace():
     descripcion = request.form.get('descripcion')
     categoria = request.form.get('categoria', 'WhatsApp')
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute("INSERT INTO enlaces_grupo (titulo, url, descripcion, categoria) VALUES (?, ?, ?, ?)",
               (titulo, url, descripcion, categoria))
@@ -1040,7 +1050,7 @@ def admin_agregar_nivel():
         bichos_velocidad = float(request.form.get('bichos_velocidad', 1.5))
         descripcion = request.form.get('descripcion', '')
 
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection()
         c = conn.cursor()
         c.execute("INSERT OR REPLACE INTO niveles_personalizados (numero_nivel, nombre_nivel, bichos_velocidad, descripcion) VALUES (?, ?, ?, ?)",
                   (numero_nivel, nombre_nivel, bichos_velocidad, descripcion))
@@ -1057,7 +1067,7 @@ def admin_eliminar_enlace(enlace_id):
     if not user or user['rol'] not in ['admin', 'moderador']:
         return redirect(url_for('index'))
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute("DELETE FROM enlaces_grupo WHERE id = ?", (enlace_id,))
     conn.commit()
@@ -1081,7 +1091,7 @@ def admin_agregar_anuncio():
             archivo_anuncio = secure_filename(f.filename)
             f.save(os.path.join(UPLOAD_FOLDER, archivo_anuncio))
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute("INSERT INTO anuncios (titulo, contenido, archivo) VALUES (?, ?, ?)", (titulo, contenido, archivo_anuncio))
     conn.commit()
@@ -1095,7 +1105,7 @@ def admin_eliminar_anuncio(anuncio_id):
     if not user or user['rol'] not in ['admin', 'moderador']:
         return redirect(url_for('index'))
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute("DELETE FROM anuncios WHERE id = ?", (anuncio_id,))
     conn.commit()
@@ -1130,7 +1140,7 @@ def admin_agregar_recurso():
         elif ext in {'mp3', 'wav', 'm4a', 'aac', 'ogg'}:
             tipo = 'audio'
             
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection()
         c = conn.cursor()
         c.execute("INSERT INTO recursos (titulo, descripcion, archivo, tipo) VALUES (?, ?, ?, ?)",
                   (titulo, descripcion, filename, tipo))
@@ -1147,7 +1157,7 @@ def admin_eliminar_recurso(recurso_id):
     if not user or user['rol'] not in ['admin', 'moderador']:
         return redirect(url_for('index'))
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute("DELETE FROM recursos WHERE id = ?", (recurso_id,))
     conn.commit()
@@ -1159,7 +1169,7 @@ def admin_eliminar_recurso(recurso_id):
 MAX_STORAGE_QUOTA = 100 * 1024 * 1024 # 100 MB
 
 def get_user_storage_used(usuario_id):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute("SELECT SUM(tamano) FROM archivos_almacenamiento WHERE usuario_id = ?", (usuario_id,))
     total = c.fetchone()[0]
@@ -1173,7 +1183,7 @@ def almacenamiento_vista():
         flash("Debes iniciar sesión para ver tu almacenamiento.", "error")
         return redirect(url_for('login'))
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT * FROM archivos_almacenamiento WHERE usuario_id = ? ORDER BY creado_en DESC", (user['id'],))
@@ -1220,7 +1230,7 @@ def almacenamiento_subir():
         elif ext in {'mp3', 'wav', 'm4a', 'aac', 'ogg'}:
             tipo = 'audio'
             
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection()
         c = conn.cursor()
         c.execute("INSERT INTO archivos_almacenamiento (usuario_id, nombre_original, nombre_guardado, tipo, tamano) VALUES (?, ?, ?, ?, ?)",
                   (user['id'], nombre_original, nombre_guardado, tipo, file_size))
@@ -1237,7 +1247,7 @@ def almacenamiento_eliminar(archivo_id):
     if not user:
         return redirect(url_for('login'))
         
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT * FROM archivos_almacenamiento WHERE id = ? AND usuario_id = ?", (archivo_id, user['id']))
@@ -1268,7 +1278,7 @@ def admin_eliminar_usuario(uid):
     if not user or user['rol'] != 'admin':
         flash("Acceso no autorizado.", "error")
         return redirect(url_for('admin_panel'))
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     if uid == user['id']:
         flash("No puedes eliminar tu propia cuenta de administrador principal.", "error")
         conn.close()
@@ -1292,7 +1302,7 @@ def admin_personalizar():
     mensaje = request.form.get('mensaje_bienvenida', '')
     footer = request.form.get('footer_texto', '')
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     conn.execute("INSERT OR REPLACE INTO configuracion_plataforma (clave, valor) VALUES ('titulo_plataforma', ?)", (titulo,))
     conn.execute("INSERT OR REPLACE INTO configuracion_plataforma (clave, valor) VALUES ('color_principal', ?)", (c_principal,))
     conn.execute("INSERT OR REPLACE INTO configuracion_plataforma (clave, valor) VALUES ('color_secundario', ?)", (c_secundario,))
@@ -1310,7 +1320,7 @@ def admin_mantenimiento(accion):
         flash("Acceso no autorizado.", "error")
         return redirect(url_for('admin_panel'))
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     if accion == 'optimizar':
         c.execute("VACUUM")
@@ -1334,7 +1344,7 @@ def juegos_ganar_puntos():
         return jsonify({"status": "error", "message": "No autenticado"}), 401
     
     puntos = int(request.json.get('puntos', 5))
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     conn.execute("UPDATE usuarios SET puntos_contribucion = puntos_contribucion + ? WHERE id = ?", (puntos, user['id']))
     conn.commit()
     conn.close()
@@ -1344,7 +1354,7 @@ def juegos_ganar_puntos():
 @app.route('/juego-arena')
 def juego_arena():
     user = get_current_user()
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT id, nombre, puntos_contribucion FROM usuarios ORDER BY puntos_contribucion DESC LIMIT 10")
@@ -1379,7 +1389,7 @@ def juego_arena_guardar_score():
     
     puntos_ganados = puntos_base + bonus_reto
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     conn.execute("UPDATE usuarios SET puntos_contribucion = puntos_contribucion + ?, nivel_maximo = MAX(COALESCE(nivel_maximo, 1), ?) WHERE id = ?", (puntos_ganados, diff_level, user['id']))
     conn.commit()
     
@@ -1406,7 +1416,7 @@ def juego_arena_guardar_score():
 @app.route('/health')
 def health_check():
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection()
         c = conn.cursor()
         c.execute("SELECT 1")
         conn.close()
@@ -1453,7 +1463,7 @@ def handle_player_action(data):
 @app.cli.command("db-stats")
 def db_stats_command():
     """Muestra estadísticas del sistema."""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute("SELECT COUNT(*) FROM usuarios")
     users = c.fetchone()[0]

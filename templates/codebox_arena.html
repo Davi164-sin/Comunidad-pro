@@ -73,6 +73,14 @@
     background: radial-gradient(circle, #00e676 0%, #059669 100%);
     border: 2px solid #ffffff; position: absolute; top: 32px; left: 32px; pointer-events: none;
   }
+  #fb1 {
+    position: absolute; bottom: 20px; right: 115px; width: 85px; height: 85px;
+    border-radius: 50%; background: radial-gradient(circle, #00e676 0%, #059669 100%);
+    border: 3px solid #ffffff; color: #ffffff; font-size: 13px; font-weight: bold;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: auto; touch-action: none; box-shadow: 0 0 20px rgba(0,230,118,0.7);
+    backdrop-filter: blur(4px);
+  }
   #fb2 {
     position: absolute; bottom: 20px; right: 20px; width: 85px; height: 85px;
     border-radius: 50%; background: radial-gradient(circle, #ff3d00 0%, #b71c1c 100%);
@@ -142,6 +150,7 @@
 
   <div id="controls">
     <div id="jz"><div id="jk"></div></div>
+    <div id="fb1">🔥 FUEGO</div>
     <div id="fb2">💣 BOMBA</div>
   </div>
 
@@ -798,6 +807,14 @@
       }
     }
 
+    let mobileFiring = false;
+    const fb1 = document.getElementById('fb1');
+    fb1.addEventListener('touchstart', e => { e.preventDefault(); mobileFiring = true; }, { passive: false });
+    fb1.addEventListener('touchend', e => { e.preventDefault(); mobileFiring = false; }, { passive: false });
+    fb1.addEventListener('mousedown', e => { mobileFiring = true; });
+    fb1.addEventListener('mouseup', e => { mobileFiring = false; });
+    fb1.addEventListener('mouseleave', e => { mobileFiring = false; });
+
     fb2.addEventListener('touchstart', e => { e.preventDefault(); triggerSmartBomb(); }, { passive: false });
     fb2.addEventListener('click', e => { triggerSmartBomb(); });
 
@@ -899,7 +916,9 @@
       player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
 
       if (fireCooldown > 0) fireCooldown--;
-      shoot(); // Disparo automático continuo activado por defecto
+      if (mouseFiring || keys.space || mobileFiring) {
+        shoot(); // Disparo manual (Click izq, Espacio o botón Fuego móvil)
+      }
 
       if (bombCooldownTimer > 0) {
         bombCooldownTimer--;

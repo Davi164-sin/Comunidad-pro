@@ -851,12 +851,10 @@
       if (mag > 0.1) {
         player.x += (moveX / mag) * currentSpeed;
         player.y += (moveY / mag) * currentSpeed;
-        if (!mouseFiring && !mobileFiring) {
-          player.angle = Math.atan2(moveY, moveX);
-        }
+        player.angle = Math.atan2(moveY, moveX);
       }
 
-      if (mouseX !== window.innerWidth/2 || mouseY !== window.innerHeight/2) {
+      if (Math.abs(mouseX - window.innerWidth / 2) > 10 || Math.abs(mouseY - window.innerHeight / 2) > 10) {
         player.angle = Math.atan2(mouseY - player.y, mouseX - player.x);
       }
 

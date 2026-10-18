@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Arcade Supremo: Bichos & 1v1 - Phaser 3</title>
+    <style>
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #0a0a1a; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #game-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; position: relative; }
+        
+        /* Menú desplegable / Herramientas */
+        .toolbar {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: rgba(20, 20, 40, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            transition: max-height 0.3s ease;
+            max-width: 280px;
+            width: 100%;
+        }
+        .toolbar-header {
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            color: white;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .toolbar-content {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .toolbar.collapsed .toolbar-content {
+            display: none;
+        }
+        .btn-action {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 13px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-action:hover {
+            background: rgba(99, 102, 241, 0.4);
+            border-color: #6366f1;
+        }
+        
+        /* Modales (Tienda, Niveles, Juegos) */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            display: none;
+        }
+        .modal.active { display: flex; }
+        .modal-card {
+            background: #1e1e3f;
+            border: 1px solid #4f46e5;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            padding: 20px;
+            color: white;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+        .close-btn { background: #ef4444; border: none; color: white; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-weight: bold; }
+        
+        .shop-item, .level-item, .game-item {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 10px 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .shop-item button, .level-item button, .game-item button {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .shop-item button:disabled { background: #6b7280; cursor: not-allowed; }
+        
+        .hud-top {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 999;
+            color: white;
+            background: rgba(0,0,0,0.6);
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="hud-top" id="hudTop">Monedas: <span id="coinCount">0</span> | Nivel: <span id="levelNum">1</span> | Color: <span id="colorName">Verde</span></div>
+
+    <!-- Menú Desplegable de Herramientas -->
+    <div class="toolbar" id="toolbar">
+        <div class="toolbar-header" onclick="toggleToolbar()">
+            <span>🛠️ Menú & Herramientas</span>
+            <span id="toggleIcon">▼</span>
+        </div>
+        <div class="toolbar-content">
+            <button class="btn-action" onclick="openModal('shopModal')">🛒 Tienda (Poderes y Armas)</button>
+            <button class="btn-action" onclick="openModal('levelsModal')">🗺️ Selector de Niveles</button>
+            <button class="btn-action" onclick="openModal('gamesModal')">🎮 7 Juegos 1v1 / Arcade</button>
+            <button class="btn-action" onclick="resetProgress()">🔄 Reiniciar Partida</button>
+        </div>
+    </div>
+
+    <!-- Modal Tienda -->
+    <div class="modal" id="shopModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>🛒 Tienda de Poderes y Armas</h3>
+                <button class="close-btn" onclick="closeModal('shopModal')">×</button>
+            </div>
+            <p>Monedas disponibles: <span id="shopCoins">0</span></p>
+            <div class="shop-item">
+                <div><h4>🦘 Salto Doble</h4><p>Permite saltar dos veces en el aire.</p></div>
+                <button onclick="buyItem('doubleJump', 10)" id="btnDoubleJump">Comprar (10 🪙)</button>
+            </div>
+            <div class="shop-item">
+                <div><h4>🛡️ Escudo Antibichos</h4><p>Protege de 1 impacto contra enemigos.</p></div>
+                <button onclick="buyItem('shield', 15)" id="btnShield">Comprar (15 🪙)</button>
+            </div>
+            <div class="shop-item">
+                <div><h4>🔫 Arma Láser Insecticida</h4><p>Dispara para eliminar bichos a distancia.</p></div>
+                <button onclick="buyItem('laserGun', 25)" id="btnLaserGun">Comprar (25 🪙)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Niveles -->
+    <div class="modal" id="levelsModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>🗺️ Partidas y Niveles</h3>
+                <button class="close-btn" onclick="closeModal('levelsModal')">×</button>
+            </div>
+            <div class="level-item">
+                <div><h4>Nivel 1: Jardín de Hormigas</h4><p>Color: Verde 🟩 | Bichos: Hormigas</p></div>
+                <button onclick="selectLevel(1)">Jugar</button>
+            </div>
+            <div class="level-item">
+                <div><h4>Nivel 2: Cocina de Cucarachas</h4><p>Color: Azul 🟦 | Bichos: Cucarachas</p></div>
+                <button onclick="selectLevel(2)">Jugar</button>
+            </div>
+            <div class="level-item">
+                <div><h4>Nivel 3: Cloaca de Ratones</h4><p>Color: Rojo 🟥 | Bichos: Ratones</p></div>
+                <button onclick="selectLevel(3)">Jugar</button>
+            </div>
+            <div class="level-item">
+                <div><h4>Nivel 4: Túnel de Gusanos</h4><p>Color: Morado 🟪 | Bichos: Gusanos</p></div>
+                <button onclick="selectLevel(4)">Jugar</button>
+            </div>
+            <div class="level-item">
+                <div><h4>Nivel 5: Invasión Total 1v1</h4><p>Color: Dorado 🟨 | Todos los bichos + Jefe</p></div>
+                <button onclick="selectLevel(5)">Jugar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 7 Juegos Arcade & 1v1 -->
+    <div class="modal" id="gamesModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>🎮 7 Juegos Arcade & Competencia 1v1</h3>
+                <button class="close-btn" onclick="closeModal('gamesModal')">×</button>
+            </div>
+            <div class="game-item">
+                <div><h4>1. Plataforma Aventura Bichos</h4><p>Modo principal con niveles y tienda.</p></div>
+                <button onclick="switchGame(1)">Jugar</button>
+            </div>
+            <div class="game-item">
+                <div><h4>2. Defensa de Base 1v1</h4><p>Defiende contra oleadas de bichos contra rival.</p></div>
+                <button onclick="switchGame(2)">Jugar</button>
+            </div>
+            <div class="game-item">
+                <div><h4>3. Carrera de Gusanos</h4><p>Esquiva obstáculos y gana la carrera.</p></div>
+                <button onclick="switchGame(3)">Jugar</button>
+            </div>
+            <div class="game-item">
+                <div><h4>4. Caza de Cucarachas</h4><p>Atrapa el máximo número de cucarachas.</p></div>
+                <button onclick="switchGame(4)">Jugar</button>
+            </div>
+            <div class="game-item">
+                <div><h4>5. Laberinto de Hormigas</h4><p>Encuentra la salida evadiendo hormigas.</p></div>
+                <button onclick="switchGame(5)">Jugar</button>
+            </div>
+            <div class="game-item">
+                <div><h4>6. Duelo Arena 1v1</h4><p>Combate PvP/IA con poderes y armas.</p></div>
+                <button onclick="switchGame(6)">Jugar</button>
+            </div>
+            <div class="game-item">
+                <div><h4>7. Snake de Gusanos</h4><p>Snake clásico temático de bichos.</p></div>
+                <button onclick="switchGame(7)">Jugar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-container"></div>
+
+    <script>
+        function toggleToolbar() {
+            const tb = document.getElementById('toolbar');
+            tb.classList.toggle('collapsed');
+            document.getElementById('toggleIcon').innerText = tb.classList.contains('collapsed') ? '▲' : '▼';
+        }
+        function openModal(id) { document.getElementById(id).classList.add('active'); updateHUDValues(); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+        
+        let gameState = { coins: 0, level: 1, color: 0x00ff00, colorName: 'Verde', items: {} };
+        function updateHUDValues() {
+            document.getElementById('coinCount').innerText = gameState.coins;
+            document.getElementById('levelNum').innerText = gameState.level;
+            document.getElementById('colorName').innerText = gameState.colorName;
+            document.getElementById('shopCoins').innerText = gameState.coins;
+        }
+        function buyItem(itemKey, cost) {
+            if (gameState.coins >= cost && !gameState.items[itemKey]) {
+                gameState.coins -= cost;
+                gameState.items[itemKey] = true;
+                alert('¡Compra exitosa!');
+                updateHUDValues();
+            } else if (gameState.items[itemKey]) {
+                alert('Ya tienes este poder.');
+            } else {
+                alert('No tienes suficientes monedas.');
+            }
+        }
+        function selectLevel(lvl) {
+            gameState.level = lvl;
+            const colors = [
+                {name: 'Verde', hex: 0x00ff00},
+                {name: 'Azul', hex: 0x0088ff},
+                {name: 'Rojo', hex: 0xff3333},
+                {name: 'Morado', hex: 0xaa00ff},
+                {name: 'Dorado', hex: 0xffd700}
+            ];
+            gameState.color = colors[lvl-1].hex;
+            gameState.colorName = colors[lvl-1].name;
+            updateHUDValues();
+            closeModal('levelsModal');
+            if (window.loadGameLevel) window.loadGameLevel(lvl);
+        }
+        function switchGame(gameId) {
+            closeModal('gamesModal');
+            if (window.loadArcadeGame) window.loadArcadeGame(gameId);
+        }
+        function resetProgress() {
+            gameState.coins = 0;
+            gameState.level = 1;
+            gameState.color = 0x00ff00;
+            gameState.colorName = 'Verde';
+            gameState.items = {};
+            updateHUDValues();
+            alert('Partida reiniciada.');
+            if (window.loadGameLevel) window.loadGameLevel(1);
+        }
+    </script>
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>

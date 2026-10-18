@@ -429,7 +429,8 @@
       hp: 100,
       kills: 0,
       color: '#00e676',
-      colorName: 'Verde Neón'
+      colorName: 'Verde Neón',
+      hitTimer: 0
     };
 
     // Rival para modo 1v1
@@ -747,6 +748,8 @@
         }
       }
 
+      if (player.hitTimer > 0) player.hitTimer--;
+
       // Enemigos Bichos
       for (let i = enemies.length - 1; i >= 0; i--) {
         let en = enemies[i];
@@ -781,10 +784,16 @@
             inventory.shield = false;
             enemies.splice(i, 1);
             alert('¡Tu Escudo te protegió y destruyó al bicho!');
-          } else {
-            player.hp = Math.max(0, player.hp - 0.7);
+          } else if (player.hitTimer <= 0) {
+            player.hp = Math.max(0, player.hp - 12);
+            player.hitTimer = 45; // 45 frames de invulnerabilidad (0.75s)
             document.getElementById('hp-val').textContent = Math.floor(player.hp);
             document.getElementById('hp-fill').style.width = player.hp + '%';
+            
+            // Empuje táctil del bicho al golpear
+            en.x -= Math.cos(angle) * 35;
+            en.y -= Math.sin(angle) * 35;
+
             if (player.hp <= 0 && !gameOver) {
               triggerGameOver();
             }
@@ -932,27 +941,29 @@
         ctx.restore();
       }
 
-      // Jugador (Color dinámico con halo)
-      ctx.save();
-      ctx.translate(player.x, player.y);
-      ctx.rotate(player.angle);
+      // Jugador (Color dinámico con halo y parpadeo al recibir daño)
+      if (player.hitTimer <= 0 || Math.floor(player.hitTimer / 5) % 2 === 0) {
+        ctx.save();
+        ctx.translate(player.x, player.y);
+        ctx.rotate(player.angle);
 
-      ctx.shadowBlur = 15;
-      ctx.shadowColor = player.color;
-      ctx.fillStyle = player.color;
-      ctx.beginPath(); ctx.arc(0, 0, player.radius, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = player.color;
+        ctx.fillStyle = player.color;
+        ctx.beginPath(); ctx.arc(0, 0, player.radius, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
 
-      // Cañón arma
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(10, -4, 14, 8);
+        // Cañón arma
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(10, -4, 14, 8);
 
-      // Si tiene escudo activo
-      if (inventory.shield) {
-        ctx.strokeStyle = '#00ffff'; ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.arc(0, 0, player.radius + 6, 0, Math.PI * 2); ctx.stroke();
+        // Si tiene escudo activo
+        if (inventory.shield) {
+          ctx.strokeStyle = '#00ffff'; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.arc(0, 0, player.radius + 6, 0, Math.PI * 2); ctx.stroke();
+        }
+        ctx.restore();
       }
-      ctx.restore();
     }
 
     function loop() {

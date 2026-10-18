@@ -598,7 +598,13 @@
 
     function responderReto(aceptado) {
       challengeAccepted = aceptado;
-      document.getElementById('challengeStartModal').style.display = 'none';
+      const modal = document.getElementById('challengeStartModal');
+      if (modal) {
+        modal.style.display = 'none';
+        modal.style.visibility = 'hidden';
+        modal.style.opacity = '0';
+        modal.remove(); // Eliminar modal del DOM para asegurar que no bloquee clics ni toques en el canvas
+      }
       gameOver = false;
       player.hp = 100;
       player.kills = 0;
@@ -609,6 +615,7 @@
         spawnInsectEnemy();
       }
       isPaused = false;
+      if (canvas) canvas.focus();
     }
 
     function togglePause() {

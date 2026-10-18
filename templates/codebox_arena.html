@@ -141,12 +141,22 @@
 
   <!-- Modal Pausa -->
   <div id="pauseModal">
-    <div class="modal-card">
+    <div class="modal-card" style="max-width: 480px;">
       <h2 class="text-warning fw-bold mb-3"><i class="fas fa-pause-circle me-2"></i>JUEGO EN PAUSA</h2>
-      <p class="text-muted mb-4">Tómate un respiro, estratega.</p>
-      <button class="btn btn-success btn-lg w-100 fw-bold mb-3 shadow" onclick="togglePause()">Continuar Partida</button>
-      <button class="btn btn-outline-warning btn-sm w-100 mb-2" onclick="location.reload()">Reiniciar Partida</button>
-      <a href="{{ url_for('zona_juegos') }}" class="btn btn-outline-danger btn-sm w-100">Salir a Zona de Juegos</a>
+      <p class="text-muted mb-3">Selecciona una opción o continúa la partida.</p>
+      
+      <div class="d-grid gap-2 mb-3">
+        <button class="btn btn-success btn-lg fw-bold shadow" onclick="togglePause()"><i class="fas fa-play me-2"></i>Continuar Partida</button>
+        <button class="btn btn-outline-warning fw-bold" onclick="openShopModal(); togglePause();"><i class="fas fa-shopping-cart me-2"></i>Tienda (Armas y Poderes)</button>
+        <button class="btn btn-outline-info fw-bold" onclick="openLevelsModal(); togglePause();"><i class="fas fa-map-marked-alt me-2"></i>Seleccionar Nivel</button>
+        <button class="btn btn-outline-success fw-bold" onclick="openGamesModal(); togglePause();"><i class="fas fa-gamepad me-2"></i>7 Minijuegos & 1v1</button>
+        <button class="btn btn-outline-purple fw-bold" style="color: #d500f9; border-color: #d500f9;" onclick="openBgThemeModal(); togglePause();"><i class="fas fa-image me-2"></i>Cambiar Fondo / Tema</button>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-light btn-sm w-50" onclick="location.reload()">Reiniciar</button>
+        <a href="{{ url_for('zona_juegos') }}" class="btn btn-outline-danger btn-sm w-50">Salir</a>
+      </div>
     </div>
   </div>
 
@@ -476,7 +486,11 @@
       if (gameOver) return;
       isPaused = !isPaused;
       document.getElementById('pauseModal').style.display = isPaused ? 'flex' : 'none';
-      document.getElementById('compactDropdown').classList.remove('show');
+      if (isPaused) {
+        document.getElementById('compactDropdown').classList.add('show');
+      } else {
+        document.getElementById('compactDropdown').classList.remove('show');
+      }
     }
 
     // Modal Helpers

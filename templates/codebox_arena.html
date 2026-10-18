@@ -142,7 +142,7 @@
 
   <div id="controls">
     <div id="jz"><div id="jk"></div></div>
-    <div id="fb2">DISPARO</div>
+    <div id="fb2">💣 BOMBA</div>
   </div>
 
   <!-- Modal Pausa -->
@@ -771,8 +771,35 @@
       jk.style.left = '25px'; jk.style.top = '25px';
     }, { passive: false });
 
-    fb2.addEventListener('touchstart', e => { e.preventDefault(); mobileFiring = true; }, { passive: false });
-    fb2.addEventListener('touchend', e => { e.preventDefault(); mobileFiring = false; }, { passive: false });
+    let bombCooldownTimer = 0;
+    let activeExplosions = [];
+
+    function triggerSmartBomb() {
+      if (bombCooldownTimer <= 0 && !gameOver && !isPaused) {
+        bombCooldownTimer = 600; // 10 segundos (600 frames a 60fps)
+        activeExplosions.push({ x: player.x, y: player.y, radius: 10, maxRadius: 320, alpha: 1 });
+
+        // Destruir bichos cercanos y dar monedas + vida
+        for (let i = enemies.length - 1; i >= 0; i--) {
+          let en = enemies[i];
+          const dist = Math.hypot(player.x - en.x, player.y - en.y);
+          if (dist < 320) {
+            coins.push({ x: en.x, y: en.y, rot: 0 });
+            enemies.splice(i, 1);
+            player.kills++;
+            player.hp = Math.min(100, player.hp + 5);
+          }
+        }
+
+        document.getElementById('kills-val').textContent = player.kills;
+        document.getElementById('hp-val').textContent = Math.floor(player.hp);
+        document.getElementById('hp-fill').style.width = player.hp + '%';
+        updateHeroColor();
+      }
+    }
+
+    fb2.addEventListener('touchstart', e => { e.preventDefault(); triggerSmartBomb(); }, { passive: false });
+    fb2.addEventListener('click', e => { triggerSmartBomb(); });
 
     let fireCooldown = 0;
     function shoot() {
@@ -873,6 +900,16 @@
 
       if (fireCooldown > 0) fireCooldown--;
       shoot(); // Disparo automático continuo activado por defecto
+
+      if (bombCooldownTimer > 0) {
+        bombCooldownTimer--;
+        const secsLeft = Math.ceil(bombCooldownTimer / 60);
+        fb2.innerHTML = `⏳ ${secsLeft}s`;
+        fb2.style.background = '#374151';
+      } else {
+        fb2.innerHTML = `💣 BOMBA`;
+        fb2.style.background = 'radial-gradient(circle, #ff3d00 0%, #b71c1c 100%)';
+      }
 
       // Proyectiles
       bullets = bullets.filter(b => {
@@ -1131,6 +1168,21 @@
 
       // Dibujar Bichos
       enemies.forEach(en => drawInsect(en));
+
+      // Dibujar ondas expansivas de la bomba inteligente
+      for (let i = activeExplosions.length - 1; i >= 0; i--) {
+        let exp = activeExplosions[i];
+        exp.radius += 12;
+        exp.alpha -= 0.04;
+        ctx.save();
+        ctx.strokeStyle = `rgba(255, 61, 0, ${exp.alpha})`;
+        ctx.lineWidth = 8;
+        ctx.beginPath(); ctx.arc(exp.x, exp.y, exp.radius, 0, Math.PI*2); ctx.stroke();
+        ctx.restore();
+        if (exp.alpha <= 0 || exp.radius >= exp.maxRadius) {
+          activeExplosions.splice(i, 1);
+        }
+      }
 
       // Balas
       bullets.forEach(b => {

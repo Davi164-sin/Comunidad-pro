@@ -775,26 +775,60 @@
     let fireCooldown = 0;
     function shoot() {
       if (fireCooldown <= 0 && !gameOver && !isPaused) {
-        fireCooldown = 9;
-        const speed = 15;
+        const speed = 16;
 
-        if (inventory.quadGun) {
-          [-0.2, -0.07, 0.07, 0.2].forEach(angleOffset => {
+        if (inventory.plasmaRay) {
+          fireCooldown = 4; // Muy rápido y potente
+          [-0.3, -0.15, 0, 0.15, 0.3].forEach(angleOffset => {
+            bullets.push({
+              x: player.x + Math.cos(player.angle + angleOffset) * 24,
+              y: player.y + Math.sin(player.angle + angleOffset) * 24,
+              vx: Math.cos(player.angle + angleOffset) * speed * 1.4,
+              vy: Math.sin(player.angle + angleOffset) * speed * 1.4,
+              radius: 7, color: '#d500f9'
+            });
+          });
+        } else if (inventory.missileLauncher) {
+          fireCooldown = 6;
+          [-0.2, 0, 0.2].forEach(angleOffset => {
+            bullets.push({
+              x: player.x + Math.cos(player.angle + angleOffset) * 24,
+              y: player.y + Math.sin(player.angle + angleOffset) * 24,
+              vx: Math.cos(player.angle + angleOffset) * speed * 1.2,
+              vy: Math.sin(player.angle + angleOffset) * speed * 1.2,
+              radius: 8, color: '#ff6d00'
+            });
+          });
+        } else if (inventory.autoTurret) {
+          fireCooldown = 7;
+          [-0.15, 0, 0.15].forEach(angleOffset => {
             bullets.push({
               x: player.x + Math.cos(player.angle + angleOffset) * 22,
               y: player.y + Math.sin(player.angle + angleOffset) * 22,
               vx: Math.cos(player.angle + angleOffset) * speed,
               vy: Math.sin(player.angle + angleOffset) * speed,
-              radius: 5, color: player.color
+              radius: 5, color: '#00e5ff'
+            });
+          });
+        } else if (inventory.dualGun) {
+          fireCooldown = 8;
+          [-0.1, 0.1].forEach(angleOffset => {
+            bullets.push({
+              x: player.x + Math.cos(player.angle + angleOffset) * 22,
+              y: player.y + Math.sin(player.angle + angleOffset) * 22,
+              vx: Math.cos(player.angle + angleOffset) * speed,
+              vy: Math.sin(player.angle + angleOffset) * speed,
+              radius: 5, color: '#00e676'
             });
           });
         } else {
+          fireCooldown = 10;
           bullets.push({
             x: player.x + Math.cos(player.angle) * 22,
             y: player.y + Math.sin(player.angle) * 22,
             vx: Math.cos(player.angle) * speed,
             vy: Math.sin(player.angle) * speed,
-            radius: 5, color: player.color
+            radius: 5, color: '#ffffff'
           });
         }
       }

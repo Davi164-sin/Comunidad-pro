@@ -70,6 +70,7 @@ def init_db():
             rol TEXT DEFAULT 'miembro', -- 'admin', 'moderador', 'creador', 'miembro'
             estado TEXT DEFAULT 'activo', -- 'activo', 'suspendido'
             puntos_contribucion INTEGER DEFAULT 0,
+            nivel_maximo INTEGER DEFAULT 1,
             creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -84,6 +85,13 @@ def init_db():
         c.execute("ALTER TABLE usuarios ADD COLUMN nivel_maximo INTEGER DEFAULT 1")
         conn.commit()
     except sqlite3.OperationalError:
+        pass
+
+    # Recuperar puntos y nivel para todos los usuarios existentes
+    try:
+        c.execute("UPDATE usuarios SET puntos_contribucion = MAX(puntos_contribucion, 50000), nivel_maximo = MAX(COALESCE(nivel_maximo, 1), 10)")
+        conn.commit()
+    except Exception:
         pass
 
     # Tabla de niveles personalizados gestionados por el administrador

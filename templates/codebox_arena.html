@@ -160,20 +160,58 @@
     </div>
   </div>
 
-  <!-- Modal Inicio de Reto -->
+  <!-- Modal Inicio de Reto / Dashboard de Configuración -->
   <div id="challengeStartModal" style="display: flex;">
-    <div class="modal-card" style="border: 2px solid #00e676; box-shadow: 0 0 40px rgba(0,230,118,0.4); max-width: 480px;">
-      <h3 class="text-success fw-bold mb-3"><i class="fas fa-bug me-2"></i>INVASIÓN DE BICHOS: ZONA ARCADE</h3>
-      <p class="text-light mb-3">Configura tu partida antes de comenzar o salta directo a la acción.</p>
+    <div class="modal-card" style="border: 2px solid #00e676; box-shadow: 0 0 40px rgba(0,230,118,0.4); max-width: 520px; text-align: left;">
+      <h3 class="text-success fw-bold mb-2 text-center"><i class="fas fa-gamepad me-2"></i>ZONA ARCADE: CONFIGURACIÓN</h3>
+      <p class="text-muted text-center mb-3 small">Personaliza tu partida, compra poderes y elige tu modo de juego antes de empezar.</p>
       
-      <div class="d-grid gap-2 mb-4">
-        <button class="btn btn-outline-info fw-bold" onclick="openLevelsModal()"><i class="fas fa-map-marked-alt me-2"></i>Seleccionar Nivel / Partida</button>
-        <button class="btn btn-outline-warning fw-bold" onclick="openBgThemeModal()"><i class="fas fa-image me-2"></i>Seleccionar Tema de Fondo</button>
-        <button class="btn btn-outline-success fw-bold" onclick="openGamesModal()"><i class="fas fa-gamepad me-2"></i>Elegir Minijuego / 1v1</button>
+      <!-- Selector de Nivel -->
+      <div class="mb-3">
+        <label class="form-label text-warning small fw-bold"><i class="fas fa-layer-group me-1"></i> 1. Seleccionar Nivel / Partida:</label>
+        <select id="startLevelSelect" class="form-select bg-dark text-white border-success form-select-sm" onchange="setLevel(parseInt(this.value))">
+          <option value="1">Nivel 1: Nido de Hormigas (Verde 🟩)</option>
+          <option value="2">Nivel 2: Invasión de Cucarachas (Azul 🟦)</option>
+          <option value="3">Nivel 3: Túnel de Gusanos (Rojo 🟥)</option>
+          <option value="4">Nivel 4: Cloaca de Ratones (Púrpura 🟪)</option>
+          <option value="5">Nivel 5: Horda Legendaria (Dorado 🟨)</option>
+        </select>
       </div>
 
-      <div class="d-grid gap-2">
-        <button class="btn btn-success btn-lg fw-bold shadow" onclick="responderReto(true)"><i class="fas fa-play me-2"></i>¡Comenzar Partida Ahora!</button>
+      <!-- Selector de Tema de Fondo -->
+      <div class="mb-3">
+        <label class="form-label text-warning small fw-bold"><i class="fas fa-image me-1"></i> 2. Tema de Fondo / Entorno:</label>
+        <select id="startBgSelect" class="form-select bg-dark text-white border-success form-select-sm" onchange="setBgTheme(this.value)">
+          <option value="garden">🌿 Jardín Neón (Verde)</option>
+          <option value="lab">🔬 Laboratorio Científico (Metálico)</option>
+          <option value="sewer">🕳️ Cloaca y Pantano (Ámbar)</option>
+          <option value="space">🌌 Cueva Galáctica (Púrpura)</option>
+        </select>
+      </div>
+
+      <!-- Tienda Rápida -->
+      <div class="mb-3">
+        <label class="form-label text-warning small fw-bold"><i class="fas fa-store me-1"></i> 3. Tienda Rápida (Monedas: <span id="dashCoins" class="text-warning">0</span> 🪙):</label>
+        <div class="d-flex gap-2 flex-wrap">
+          <button class="btn btn-outline-success btn-sm flex-grow-1" onclick="buyShopItem('shield', 10)">🛡️ Escudo (10🪙)</button>
+          <button class="btn btn-outline-success btn-sm flex-grow-1" onclick="buyShopItem('speed', 15)">⚡ Velocidad (15🪙)</button>
+          <button class="btn btn-outline-success btn-sm flex-grow-1" onclick="buyShopItem('magnet', 20)">🧲 Imán (20🪙)</button>
+          <button class="btn btn-outline-success btn-sm flex-grow-1" onclick="buyShopItem('quadGun', 30)">🔥 Láser (30🪙)</button>
+        </div>
+      </div>
+
+      <!-- Modo de Juego: Solo o Multijugador Real 1v1 -->
+      <div class="mb-4">
+        <label class="form-label text-warning small fw-bold"><i class="fas fa-users me-1"></i> 4. Modo de Juego:</label>
+        <div class="d-grid gap-2">
+          <button id="btnSolo" class="btn btn-outline-info btn-sm fw-bold active" onclick="setGameMode(1)">👤 Supervivencia Solitario vs Bichos</button>
+          <button id="btn1v1" class="btn btn-outline-danger btn-sm fw-bold" onclick="start1v1Matchmaking()">⚔️ Multijugador 1v1 en Línea con Otro Usuario</button>
+        </div>
+        <div id="matchmakingStatus" class="text-center text-warning small mt-2"></div>
+      </div>
+
+      <div class="d-grid">
+        <button class="btn btn-success btn-lg fw-bold shadow py-2" onclick="responderReto(true)"><i class="fas fa-play me-2"></i>¡COMENZAR PARTIDA!</button>
       </div>
     </div>
   </div>
@@ -380,6 +418,7 @@
     </div>
   </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     const canvas = document.getElementById('gameCanvas');
@@ -452,6 +491,45 @@
     let joyIn = { x: 0, y: 0 };
     let mobileFiring = false;
 
+    const socket = io();
+    let is1v1Multiplayer = false;
+    let multiplayerRoom = null;
+
+    function start1v1Matchmaking() {
+      is1v1Multiplayer = true;
+      document.getElementById('btnSolo').classList.remove('active');
+      document.getElementById('btn1v1').classList.add('active');
+      document.getElementById('matchmakingStatus').textContent = 'Conectando al servidor y buscando oponente 1v1...';
+      
+      const userName = "{{ usuario.nombre if usuario else 'Jugador Anónimo' }}";
+      socket.emit('join_arena_1v1', { nombre: userName });
+    }
+
+    socket.on('waiting_for_opponent', (data) => {
+      document.getElementById('matchmakingStatus').textContent = data.message;
+    });
+
+    socket.on('start_1v1_match', (data) => {
+      multiplayerRoom = data.room;
+      document.getElementById('matchmakingStatus').innerHTML = `<span class="text-success">¡Oponente encontrado! Partida 1v1 contra <strong>${data.player1 === "{{ usuario.nombre }}" ? data.player2 : data.player1}</strong> iniciada.</span>`;
+      setTimeout(() => {
+        responderReto(true);
+      }, 1500);
+    });
+
+    socket.on('opponent_action', (data) => {
+      rival.x = data.x;
+      rival.y = data.y;
+      rival.angle = data.angle;
+    });
+
+    function setGameMode(mode) {
+      is1v1Multiplayer = (mode === 2);
+      document.getElementById('btnSolo').classList.toggle('active', mode === 1);
+      document.getElementById('btn1v1').classList.toggle('active', mode === 2);
+      if (mode === 1) document.getElementById('matchmakingStatus').textContent = '';
+    }
+
     // Actualización del Color del Héroe según Nivel y Monedas
     function updateHeroColor() {
       if (currentLevel >= 5 || coinsCollected >= 60) {
@@ -475,6 +553,8 @@
       document.getElementById('hud-hero-color').style.color = player.color;
       document.getElementById('hud-coins').textContent = coinsCollected;
       document.getElementById('diff-val').textContent = `Nivel ${currentLevel}`;
+      const dashCoins = document.getElementById('dashCoins');
+      if (dashCoins) dashCoins.textContent = coinsCollected;
     }
 
     function responderReto(aceptado) {
@@ -720,7 +800,7 @@
       player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
 
       if (fireCooldown > 0) fireCooldown--;
-      if (mobileFiring || mouseFiring || keys.space) shoot();
+      shoot(); // Disparo automático continuo activado por defecto
 
       // Proyectiles
       bullets = bullets.filter(b => {
@@ -767,6 +847,9 @@
             enemies.splice(i, 1);
             bullets.splice(j, 1);
             player.kills++;
+            player.hp = Math.min(100, player.hp + 5);
+            document.getElementById('hp-val').textContent = Math.floor(player.hp);
+            document.getElementById('hp-fill').style.width = player.hp + '%';
             document.getElementById('kills-val').textContent = player.kills;
 
             // Subir nivel automáticamente cada 10 bajas
@@ -890,15 +973,52 @@
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Fondo y Rejilla según Tema
+      // Entorno y Tema Completo
       let bgColor = '#07100a', gridColor = '#102214';
-      if (currentBgTheme === 'lab') { bgColor = '#0b1329'; gridColor = '#1e293b'; }
-      else if (currentBgTheme === 'sewer') { bgColor = '#14100a'; gridColor = '#2a1d12'; }
-      else if (currentBgTheme === 'space') { bgColor = '#120a22'; gridColor = '#2b1b42'; }
+      if (currentBgTheme === 'lab') { 
+        bgColor = '#080e1a'; gridColor = '#1e3a8a'; 
+      } else if (currentBgTheme === 'sewer') { 
+        bgColor = '#140c08'; gridColor = '#451a03'; 
+      } else if (currentBgTheme === 'space') { 
+        bgColor = '#090514'; gridColor = '#4c1d95'; 
+      }
 
       ctx.fillStyle = bgColor;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+      // Decoraciones y elementos temáticos completos según el fondo
+      if (currentBgTheme === 'garden') {
+        // Jardín: Esporas y césped brillante
+        ctx.fillStyle = 'rgba(0, 230, 118, 0.08)';
+        for (let i = 100; i < canvas.width; i += 250) {
+          for (let j = 80; j < canvas.height; j += 200) {
+            ctx.beginPath(); ctx.arc(i, j, 45, 0, Math.PI*2); ctx.fill();
+          }
+        }
+      } else if (currentBgTheme === 'lab') {
+        // Laboratorio: Paneles tecnológicos y circuitos
+        ctx.strokeStyle = 'rgba(0, 229, 255, 0.12)'; ctx.lineWidth = 2;
+        for (let x = 0; x < canvas.width; x += 300) {
+          ctx.strokeRect(x + 40, 50, 180, 120);
+          ctx.strokeRect(x + 100, 350, 150, 140);
+        }
+      } else if (currentBgTheme === 'sewer') {
+        // Cloaca: Charcos tóxicos
+        ctx.fillStyle = 'rgba(217, 119, 6, 0.15)';
+        for (let x = 150; x < canvas.width; x += 350) {
+          ctx.beginPath(); ctx.ellipse(x, x % 2 === 0 ? 200 : 450, 90, 45, 0, 0, Math.PI*2); ctx.fill();
+        }
+      } else if (currentBgTheme === 'space') {
+        // Cueva Galáctica / Espacio: Estrellas brillantes y nebulosa
+        ctx.fillStyle = '#ffffff';
+        for (let i = 50; i < canvas.width; i += 120) {
+          for (let j = 40; j < canvas.height; j += 100) {
+            ctx.fillRect(i + (j % 30), j, 2, 2);
+          }
+        }
+      }
+
+      // Rejilla de Fondo
       ctx.strokeStyle = gridColor; ctx.lineWidth = 1;
       for (let x = 0; x < canvas.width; x += 60) {
         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();

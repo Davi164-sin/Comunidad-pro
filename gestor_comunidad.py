@@ -252,20 +252,26 @@ def init_db():
 
     conn.commit()
     
-    # Crear un administrador por defecto si no existe
+    # Crear un administrador por defecto si no existe y asegurar puntos de recuperación
     c.execute("SELECT id FROM usuarios WHERE email = 'admin@comunidad.com'")
     if not c.fetchone():
         hashed_pw = generate_password_hash("admin123")
         c.execute("INSERT INTO usuarios (nombre, email, password, rol, puntos_contribucion) VALUES (?, ?, ?, ?, ?)",
-                  ("Administrador Principal", "admin@comunidad.com", hashed_pw, "admin", 100))
+                  ("Administrador Principal", "admin@comunidad.com", hashed_pw, "admin", 50000))
+        conn.commit()
+    else:
+        c.execute("UPDATE usuarios SET puntos_contribucion = MAX(puntos_contribucion, 50000) WHERE email = 'admin@comunidad.com'")
         conn.commit()
 
-    # Crear usuario David por defecto si no existe
+    # Crear usuario David por defecto si no existe y asegurar puntos de recuperación
     c.execute("SELECT id FROM usuarios WHERE email = 'david@comunidad.com'")
     if not c.fetchone():
         hashed_pw = generate_password_hash("david123")
         c.execute("INSERT INTO usuarios (nombre, email, password, rol, puntos_contribucion) VALUES (?, ?, ?, ?, ?)",
-                  ("David", "david@comunidad.com", hashed_pw, "miembro", 50))
+                  ("David", "david@comunidad.com", hashed_pw, "miembro", 50000))
+        conn.commit()
+    else:
+        c.execute("UPDATE usuarios SET puntos_contribucion = MAX(puntos_contribucion, 50000) WHERE email = 'david@comunidad.com'")
         conn.commit()
         
     # Insertar enlaces de ejemplo si está vacío

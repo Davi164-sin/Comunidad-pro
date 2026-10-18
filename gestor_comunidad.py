@@ -259,6 +259,14 @@ def init_db():
         c.execute("INSERT INTO usuarios (nombre, email, password, rol, puntos_contribucion) VALUES (?, ?, ?, ?, ?)",
                   ("Administrador Principal", "admin@comunidad.com", hashed_pw, "admin", 100))
         conn.commit()
+
+    # Crear usuario David por defecto si no existe
+    c.execute("SELECT id FROM usuarios WHERE email = 'david@comunidad.com'")
+    if not c.fetchone():
+        hashed_pw = generate_password_hash("david123")
+        c.execute("INSERT INTO usuarios (nombre, email, password, rol, puntos_contribucion) VALUES (?, ?, ?, ?, ?)",
+                  ("David", "david@comunidad.com", hashed_pw, "miembro", 50))
+        conn.commit()
         
     # Insertar enlaces de ejemplo si está vacío
     c.execute("SELECT COUNT(*) FROM enlaces_grupo")

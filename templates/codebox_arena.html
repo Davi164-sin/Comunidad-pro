@@ -124,6 +124,7 @@
       <button class="compact-item" onclick="openShopModal()"><i class="fas fa-shopping-cart text-warning"></i> Tienda (Armas y Poderes)</button>
       <button class="compact-item" onclick="openLevelsModal()"><i class="fas fa-map-marked-alt text-info"></i> Seleccionar Nivel</button>
       <button class="compact-item" onclick="openGamesModal()"><i class="fas fa-gamepad text-success"></i> 7 Minijuegos & 1v1</button>
+      <button class="compact-item" onclick="openBgThemeModal()"><i class="fas fa-image text-purple" style="color: #d500f9;"></i> Cambiar Fondo / Tema</button>
       <button class="compact-item" onclick="togglePause()"><i class="fas fa-pause text-light"></i> Pausar / Continuar</button>
       <button class="compact-item" data-bs-toggle="modal" data-bs-target="#pcToolModal"><i class="fas fa-keyboard text-primary"></i> Controles & PC</button>
       <button class="compact-item" data-bs-toggle="modal" data-bs-target="#rankingModal"><i class="fas fa-trophy text-warning"></i> Ranking Global</button>
@@ -337,6 +338,38 @@
     </div>
   </div>
 
+  <!-- Modal Cambio de Fondo / Tema -->
+  <div class="modal fade" id="bgThemeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-purple" style="border-color: #d500f9 !important;">
+          <h5 class="modal-title fw-bold" style="color: #d500f9;"><i class="fas fa-image me-2"></i>Seleccionar Tema de Fondo</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="list-group">
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary d-flex justify-content-between align-items-center" onclick="setBgTheme('garden')">
+              <div><strong>🌿 Jardín Neón (Verde Oscuro)</strong><br><small class="text-success">Clásico estilo césped táctico</small></div>
+              <span class="badge bg-success">Elegir</span>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary d-flex justify-content-between align-items-center" onclick="setBgTheme('lab')">
+              <div><strong>🔬 Laboratorio Científico (Metálico)</strong><br><small class="text-info">Estilo base militar / sci-fi</small></div>
+              <span class="badge bg-info">Elegir</span>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary d-flex justify-content-between align-items-center" onclick="setBgTheme('sewer')">
+              <div><strong>🕳️ Cloaca y Pantano (Ámbar/Marrón)</strong><br><small class="text-warning">Ambiente de bichos y suciedad</small></div>
+              <span class="badge bg-warning text-dark">Elegir</span>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary d-flex justify-content-between align-items-center" onclick="setBgTheme('space')">
+              <div><strong>🌌 Cueva Galáctica (Púrpura Espacial)</strong><br><small style="color: #d500f9;">Nebulosa neón estelar</small></div>
+              <span class="badge bg-secondary">Elegir</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     const canvas = document.getElementById('gameCanvas');
@@ -466,6 +499,19 @@
       document.getElementById('compactDropdown').classList.remove('show');
     }
 
+    function openBgThemeModal() {
+      const modal = new bootstrap.Modal(document.getElementById('bgThemeModal'));
+      modal.show();
+      document.getElementById('compactDropdown').classList.remove('show');
+    }
+
+    let currentBgTheme = 'garden';
+    function setBgTheme(theme) {
+      currentBgTheme = theme;
+      bootstrap.Modal.getInstance(document.getElementById('bgThemeModal')).hide();
+      alert('¡Tema de fondo actualizado!');
+    }
+
     function buyShopItem(item, cost) {
       if (coinsCollected >= cost) {
         coinsCollected -= cost;
@@ -542,17 +588,17 @@
       let spawnY = Math.random() * canvas.height;
 
       let radius = 15;
-      let speed = 2.0 + currentLevel * 0.3;
+      let speed = 1.3 + currentLevel * 0.1;
       let color = '#8B4513';
 
       if (chosenType === 'cucaracha') {
-        speed = 3.2; color = '#5c4033'; radius = 16;
+        speed = 1.8 + currentLevel * 0.1; color = '#5c4033'; radius = 16;
       } else if (chosenType === 'raton') {
-        speed = 2.8; color = '#9e9e9e'; radius = 18;
+        speed = 1.6 + currentLevel * 0.1; color = '#9e9e9e'; radius = 18;
       } else if (chosenType === 'hormiga') {
-        speed = 2.2; color = '#1a1a1a'; radius = 13;
+        speed = 1.4 + currentLevel * 0.1; color = '#1a1a1a'; radius = 13;
       } else if (chosenType === 'gusano') {
-        speed = 1.8; color = '#e91e63'; radius = 14;
+        speed = 1.1 + currentLevel * 0.1; color = '#e91e63'; radius = 14;
       }
 
       if (enemies.length < 20 + currentLevel * 2) {
@@ -821,8 +867,16 @@
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Rejilla de Fondo Neón
-      ctx.strokeStyle = '#102214'; ctx.lineWidth = 1;
+      // Fondo y Rejilla según Tema
+      let bgColor = '#07100a', gridColor = '#102214';
+      if (currentBgTheme === 'lab') { bgColor = '#0b1329'; gridColor = '#1e293b'; }
+      else if (currentBgTheme === 'sewer') { bgColor = '#14100a'; gridColor = '#2a1d12'; }
+      else if (currentBgTheme === 'space') { bgColor = '#120a22'; gridColor = '#2b1b42'; }
+
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = gridColor; ctx.lineWidth = 1;
       for (let x = 0; x < canvas.width; x += 60) {
         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
       }

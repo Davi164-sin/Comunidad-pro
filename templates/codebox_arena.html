@@ -226,7 +226,7 @@
       </div>
 
       <div class="d-grid">
-        <button class="btn btn-success btn-lg fw-bold shadow py-2" onclick="responderReto(true)"><i class="fas fa-play me-2"></i>¡COMENZAR PARTIDA!</button>
+        <button id="startBtn" class="btn btn-success btn-lg fw-bold shadow py-2" onclick="responderReto(true)"><i class="fas fa-play me-2"></i>¡COMENZAR PARTIDA!</button>
       </div>
     </div>
   </div>
@@ -616,6 +616,18 @@
       }
       isPaused = false;
       if (canvas) canvas.focus();
+    }
+
+    const startBtn = document.getElementById('startBtn');
+    if (startBtn) {
+      startBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        responderReto(true);
+      });
+      startBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        responderReto(true);
+      });
     }
 
     function togglePause() {

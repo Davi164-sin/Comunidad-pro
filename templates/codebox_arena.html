@@ -3,117 +3,139 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>CodeBox Game Arena - Optimizado & Pausa - {{ cfg.titulo_plataforma }}</title>
+<title>CodeBox Game Arena: Bichos & 1v1 - {{ cfg.titulo_plataforma }}</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
-  body, html { width: 100%; height: 100%; overflow: hidden; background: #0b110e; font-family: 'Segoe UI', sans-serif; position: fixed; }
-  canvas { display: block; width: 100%; height: 100%; background: #0a140d; cursor: crosshair; }
+  body, html { width: 100%; height: 100%; overflow: hidden; background: #050a06; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; position: fixed; }
+  canvas { display: block; width: 100%; height: 100%; background: #07100a; cursor: crosshair; }
 
-  /* HUD SUPERIOR INTERACTIVO */
+  /* HUD SUPERIOR COMPACTO */
   #hud {
-    position: absolute; top: 0; left: 0; width: 100%; padding: 10px 15px;
-    display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;
-    padding-right: 340px;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.95), rgba(0,0,0,0));
+    position: absolute; top: 0; left: 0; width: 100%; padding: 8px 12px;
+    display: flex; justify-content: flex-start; align-items: center; flex-wrap: wrap; gap: 8px;
+    background: linear-gradient(to bottom, rgba(5,10,6,0.95), rgba(5,10,6,0));
     pointer-events: none; z-index: 10;
   }
-  .hud-box { display: flex; flex-direction: column; background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(0,230,118,0.2); }
-  .label { font-size: 10px; font-weight: bold; color: #db9c22; letter-spacing: 0.5px; margin-bottom: 2px; }
-  .value { font-size: 15px; font-weight: bold; color: #ffffff; font-family: monospace; }
+  .hud-box { display: flex; flex-direction: column; background: rgba(11,20,13,0.7); backdrop-filter: blur(4px); padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(0,230,118,0.3); }
+  .label { font-size: 9px; font-weight: bold; color: #db9c22; letter-spacing: 0.5px; text-transform: uppercase; }
+  .value { font-size: 14px; font-weight: bold; color: #ffffff; font-family: monospace; }
 
-  .hp-bar-container { width: 100px; height: 8px; background: rgba(0,0,0,0.7); border: 1px solid #1c321d; border-radius: 5px; overflow: hidden; margin-bottom: 2px; }
+  .hp-bar-container { width: 90px; height: 8px; background: rgba(0,0,0,0.7); border: 1px solid #1c321d; border-radius: 5px; overflow: hidden; margin-top: 2px; }
   .hp-bar-fill { height: 100%; background: #00e676; width: 100%; transition: width 0.1s ease; box-shadow: 0 0 8px #00e676; }
 
-  .stat-align { text-align: right; }
-  .stat-kill { color: #ff3d00; text-shadow: 0 0 8px rgba(255,61,0,0.6); }
-
-  /* MENÚ DE HERRAMIENTAS PC & BOTONES */
-  #top-tools { position: absolute; top: 10px; right: 15px; z-index: 30; display: flex; gap: 6px; pointer-events: auto; background: rgba(11,17,14,0.8); padding: 4px; border-radius: 8px; border: 1px solid rgba(0,230,118,0.3); }
-  .pc-tool-btn { background: rgba(17,29,19,0.9); border: 1px solid #00e676; color: #00e676; font-size: 12px; font-weight: bold; padding: 5px 8px; border-radius: 6px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-  .pc-tool-btn:hover { background: #00e676; color: #000; box-shadow: 0 0 10px #00e676; }
-
-  @media (max-width: 992px) {
-    #hud { padding-right: 15px; padding-top: 55px; }
-    #top-tools { top: 8px; right: 8px; left: 8px; justify-content: space-around; background: rgba(11,17,14,0.95); }
-    .pc-tool-btn { font-size: 11px; padding: 4px 6px; }
+  /* MENÚ DESPLEGABLE COMPACTO (NO OCUPA PANTALLA) */
+  #dropdown-menu-container {
+    position: absolute; top: 10px; right: 12px; z-index: 50;
   }
+  .menu-toggle-btn {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white; border: 1px solid #34d399; padding: 6px 12px;
+    border-radius: 8px; font-size: 13px; font-weight: bold;
+    cursor: pointer; display: flex; align-items: center; gap: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    transition: all 0.2s;
+  }
+  .menu-toggle-btn:hover { background: #059669; transform: scale(1.02); }
+  
+  .compact-dropdown {
+    position: absolute; top: 38px; right: 0; width: 220px;
+    background: rgba(10, 20, 14, 0.95); backdrop-filter: blur(8px);
+    border: 1px solid #00e676; border-radius: 10px;
+    padding: 8px; display: none; flex-direction: column; gap: 6px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.8);
+  }
+  .compact-dropdown.show { display: flex; }
+  .compact-item {
+    background: rgba(255, 255, 255, 0.05); color: #fff;
+    border: 1px solid rgba(0, 230, 118, 0.2); border-radius: 6px;
+    padding: 7px 10px; font-size: 12px; font-weight: 600;
+    cursor: pointer; text-align: left; transition: all 0.2s;
+    display: flex; align-items: center; gap: 8px; text-decoration: none;
+  }
+  .compact-item:hover { background: rgba(0, 230, 118, 0.2); border-color: #00e676; color: #00e676; }
 
-  /* PANEL DE HERRAMIENTAS / CONFIGURACIÓN PC */
-  #pcToolModal .modal-content, #pauseModal .modal-card, #gameOverModal .modal-card { background: #0e1810; border: 2px solid #00e676; color: #fff; }
+  /* MODALES Y ESTILOS */
+  .modal-content { background: #0c1810; border: 1.5px solid #00e676; color: #fff; border-radius: 14px; }
+  .modal-card { background: #0c1810; border: 2px solid #00e676; border-radius: 1.5rem; padding: 25px; width: 90%; max-width: 440px; text-align: center; color: white; box-shadow: 0 0 30px rgba(0,230,118,0.3); }
 
-  /* ZONA DE CONTROLES TÁCTILES (Móvil) */
-  #controls { position: absolute; bottom: 0; left: 0; width: 100%; height: 220px; pointer-events: none; z-index: 10; }
+  /* ZONA DE CONTROLES TÁCTILES */
+  #controls { position: absolute; bottom: 0; left: 0; width: 100%; height: 200px; pointer-events: none; z-index: 10; }
   #jz {
-    position: absolute; bottom: 30px; left: 30px; width: 100px; height: 100px;
-    border-radius: 50%; border: 4px solid #283729; background: rgba(14,24,15,0.7);
+    position: absolute; bottom: 25px; left: 25px; width: 90px; height: 90px;
+    border-radius: 50%; border: 3px solid #283729; background: rgba(14,24,15,0.7);
     pointer-events: auto; touch-action: none; display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 0 15px rgba(0,230,118,0.2);
   }
   #jk {
-    width: 40px; height: 40px; border-radius: 50%;
+    width: 35px; height: 35px; border-radius: 50%;
     background: radial-gradient(circle, #ff6d00 0%, #bf360c 100%);
-    border: 2px solid #ffffff; position: absolute; top: 30px; left: 30px; pointer-events: none;
-    box-shadow: 0 0 10px #ff6d00;
+    border: 2px solid #ffffff; position: absolute; top: 25px; left: 25px; pointer-events: none;
   }
   #fb2 {
-    position: absolute; bottom: 40px; right: 30px; width: 80px; height: 80px;
+    position: absolute; bottom: 30px; right: 25px; width: 75px; height: 75px;
     border-radius: 50%; background: radial-gradient(circle, #ff3d00 0%, #b71c1c 100%);
-    border: 3px solid #ffffff; color: #ffffff; font-size: 15px; font-weight: bold;
+    border: 3px solid #ffffff; color: #ffffff; font-size: 14px; font-weight: bold;
     display: flex; align-items: center; justify-content: center;
-    pointer-events: auto; touch-action: none; box-shadow: 0 0 20px rgba(255,61,0,0.7);
+    pointer-events: auto; touch-action: none; box-shadow: 0 0 15px rgba(255,61,0,0.6);
   }
 
-  /* MODAL PAUSA & GAME OVER */
-  #gameOverModal, #pauseModal {
+  /* MODAL PAUSA & RETO */
+  #pauseModal, #challengeStartModal, #gameOverModal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center;
     z-index: 100; backdrop-filter: blur(5px);
-  }
-  .modal-card {
-    background: #111d13; border: 2px solid #00e676; border-radius: 1.5rem;
-    padding: 30px; width: 90%; max-width: 420px; text-align: center; color: white;
-    box-shadow: 0 0 30px rgba(0,230,118,0.4);
   }
 </style>
 </head>
 <body>
 
+  <!-- HUD SUPERIOR -->
   <div id="hud">
     <div class="hud-box">
-      <div class="label">SALUD HP (+8/KILL)</div>
+      <div class="label">SALUD HP</div>
       <div class="hp-bar-container"><div class="hp-bar-fill" id="hp-fill"></div></div>
       <div class="value" id="hp-val">100</div>
     </div>
     <div class="hud-box">
-      <div class="label">DIFICULTAD (1 - 1000)</div>
-      <div class="value text-warning" id="diff-val">Nivel 1</div>
+      <div class="label">🪙 MONEDAS</div>
+      <div class="value text-warning" id="hud-coins">0</div>
     </div>
     <div class="hud-box">
-      <div class="label">ARMA (1000 OPCIONES)</div>
-      <div class="value" id="weapon-name" style="color: #00ffff;">Pistola Base #1</div>
+      <div class="label">PARTIDA / NIVEL</div>
+      <div class="value text-info" id="diff-val">Nivel 1</div>
     </div>
-    <div style="display: flex; gap: 15px;">
-      <div class="hud-box stat-align">
-        <div class="label">KILLS</div>
-        <div class="value stat-kill" id="kills-val">0</div>
-      </div>
+    <div class="hud-box">
+      <div class="label">COLOR HÉROE</div>
+      <div class="value" id="hud-hero-color" style="color: #00e676;">Verde Neón</div>
+    </div>
+    <div class="hud-box">
+      <div class="label">BAJAS BICHOS</div>
+      <div class="value text-danger" id="kills-val">0</div>
     </div>
   </div>
 
-  <div id="top-tools">
-    <button class="pc-tool-btn" onclick="togglePause()"><i class="fas fa-pause me-1"></i> Pausa</button>
-    <button class="pc-tool-btn" data-bs-toggle="modal" data-bs-target="#pcToolModal"><i class="fas fa-tools me-1"></i> Herramientas PC</button>
-    <button class="pc-tool-btn" data-bs-toggle="modal" data-bs-target="#rankingModal"><i class="fas fa-trophy me-1"></i> Competencia</button>
-    <a href="{{ url_for('zona_juegos') }}" class="pc-tool-btn text-warning"><i class="fas fa-arrow-left me-1"></i> Salir</a>
+  <!-- MENÚ DESPLEGABLE COMPACTO DE HERRAMIENTAS -->
+  <div id="dropdown-menu-container">
+    <button class="menu-toggle-btn" onclick="toggleDropdownMenu()">
+      <i class="fas fa-bars"></i> Menú
+    </button>
+    <div class="compact-dropdown" id="compactDropdown">
+      <button class="compact-item" onclick="openShopModal()"><i class="fas fa-shopping-cart text-warning"></i> Tienda (Armas y Poderes)</button>
+      <button class="compact-item" onclick="openLevelsModal()"><i class="fas fa-map-marked-alt text-info"></i> Seleccionar Nivel</button>
+      <button class="compact-item" onclick="openGamesModal()"><i class="fas fa-gamepad text-success"></i> 7 Minijuegos & 1v1</button>
+      <button class="compact-item" onclick="togglePause()"><i class="fas fa-pause text-light"></i> Pausar / Continuar</button>
+      <button class="compact-item" data-bs-toggle="modal" data-bs-target="#pcToolModal"><i class="fas fa-keyboard text-primary"></i> Controles & PC</button>
+      <button class="compact-item" data-bs-toggle="modal" data-bs-target="#rankingModal"><i class="fas fa-trophy text-warning"></i> Ranking Global</button>
+      <a href="{{ url_for('zona_juegos') }}" class="compact-item text-danger"><i class="fas fa-arrow-left"></i> Salir al Menú</a>
+    </div>
   </div>
 
   <canvas id="gameCanvas"></canvas>
 
   <div id="controls">
     <div id="jz"><div id="jk"></div></div>
-    <div id="fb2">FUEGO</div>
+    <div id="fb2">DISPARO</div>
   </div>
 
   <!-- Modal Pausa -->
@@ -123,58 +145,127 @@
       <p class="text-muted mb-4">Tómate un respiro, estratega.</p>
       <button class="btn btn-success btn-lg w-100 fw-bold mb-3 shadow" onclick="togglePause()">Continuar Partida</button>
       <button class="btn btn-outline-warning btn-sm w-100 mb-2" onclick="location.reload()">Reiniciar Partida</button>
-      <a href="{{ url_for('zona_juegos') }}" class="btn btn-outline-danger btn-sm w-100">Salir al Menú</a>
+      <a href="{{ url_for('zona_juegos') }}" class="btn btn-outline-danger btn-sm w-100">Salir a Zona de Juegos</a>
     </div>
   </div>
 
-  <!-- Modal Inicio de Reto (Aceptar/Rechazar) -->
-  <div id="challengeStartModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); display: flex; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(8px);">
-    <div class="modal-card" style="border: 2px solid #ff6d00; box-shadow: 0 0 40px rgba(255,109,0,0.6);">
-      <h2 class="text-warning fw-bold mb-3"><i class="fas fa-fire me-2 text-danger"></i>APUESTA RETO CODEBOX</h2>
-      <p class="text-light mb-3">¿Aceptas el desafío de supervivencia táctica?</p>
-      <div class="bg-black p-3 rounded mb-4 border border-warning text-start small text-warning">
-        🎯 <strong>Condiciones de la Apuesta:</strong><br>
-        • Llegar a <strong>Nivel 1000</strong> = <span class="text-success fw-bold">+10,000 Puntos</span><br>
-        • Llegar a <strong>Nivel 785+</strong> = <span class="text-success fw-bold">+2,500 Puntos</span><br>
-        • Puntuación base = Bajas × 2
+  <!-- Modal Inicio de Reto -->
+  <div id="challengeStartModal" style="display: flex;">
+    <div class="modal-card" style="border: 2px solid #ff6d00; box-shadow: 0 0 30px rgba(255,109,0,0.6);">
+      <h3 class="text-warning fw-bold mb-3"><i class="fas fa-bug me-2 text-danger"></i>INVASIÓN DE BICHOS</h3>
+      <p class="text-light mb-2">Elimina cucarachas, ratones, hormigas y gusanos. ¡Recoge monedas para cambiar de color y comprar armas!</p>
+      <div class="bg-black p-3 rounded mb-3 border border-warning text-start small text-warning">
+        🎯 <strong>Desafío de Competencia:</strong><br>
+        • Bichos sueltan <strong>Monedas 🪙</strong> al ser destruidos.<br>
+        • Tu personaje cambia de color con el nivel y las monedas.<br>
+        • ¡Compite por el récord en la plataforma!
       </div>
       <div class="d-grid gap-2">
-        <button class="btn btn-success btn-lg fw-bold shadow" onclick="responderReto(true)"><i class="fas fa-check-circle me-2"></i>¡Sí, Aceptar Reto!</button>
-        <button class="btn btn-outline-light btn-sm fw-bold" onclick="responderReto(false)"><i class="fas fa-play me-2"></i>No, Jugar Normal</button>
+        <button class="btn btn-success btn-lg fw-bold shadow" onclick="responderReto(true)"><i class="fas fa-check-circle me-2"></i>¡Comenzar Partida!</button>
+        <button class="btn btn-outline-light btn-sm fw-bold" onclick="responderReto(false)">Modo Libre</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal Menú de Herramientas PC -->
-  <div class="modal fade" id="pcToolModal" tabindex="-1">
+  <!-- Modal Tienda de Poderes y Armas -->
+  <div class="modal fade" id="shopModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content bg-dark border-success text-white">
+      <div class="modal-content">
         <div class="modal-header border-success">
-          <h5 class="modal-title fw-bold text-success"><i class="fas fa-laptop-code me-2"></i>Menú de Herramientas PC & Config</h5>
+          <h5 class="modal-title fw-bold text-success"><i class="fas fa-store me-2 text-warning"></i>Tienda de Poderes y Armas</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <h6 class="text-warning fw-bold mb-2"><i class="fas fa-keyboard me-1"></i> Controles de Computadora:</h6>
-          <ul class="list-unstyled small text-light mb-3">
-            <li><strong>Moverse:</strong> Teclas <code>W</code>, <code>A</code>, <code>S</code>, <code>D</code> o Flechas del Teclado.</li>
-            <li><strong>Apuntar:</strong> Mueve el <code>Cursor del Mouse</code> en tiempo real.</li>
-            <li><strong>Disparar:</strong> Click Izquierdo del Mouse 🖱️ o Barra Espaciadora.</li>
-            <li><strong>Pausar:</strong> Tecla <code>P</code> o Botón Superior.</li>
-            <li><strong>Pantalla Completa:</strong> Tecla <code>F</code>.</li>
-          </ul>
-
-          <h6 class="text-info fw-bold mb-2"><i class="fas fa-rocket me-1"></i> Sistema de 1000 Ataques & Dificultades:</h6>
-          <p class="small text-muted mb-3">Generador dinámico optimizado a 60 FPS para PC y móviles con **1000 variantes de armas** y **1000 niveles de dificultad**.</p>
-
-          <div class="alert alert-warning p-2 small mb-3 border-warning bg-black text-warning fw-bold">
-            🔥 <strong>RETO CODEBOX (APUESTA):</strong><br>
-            • ¡Llega al <strong>Nivel 1000</strong> y gana <strong>10,000 puntos</strong>!<br>
-            • ¡Llega al <strong>Nivel 785+</strong> y gana <strong>2,500 puntos</strong>!
+          <p class="text-warning fw-bold">🪙 Monedas Acumuladas: <span id="shopCoinsVal">0</span></p>
+          
+          <div class="d-flex justify-content-between align-items-center p-2 mb-2 bg-dark rounded border border-secondary">
+            <div><strong>🛡️ Escudo Defensivo</strong><br><small class="text-muted">Protege de 1 impacto mortal de bichos</small></div>
+            <button class="btn btn-outline-success btn-sm fw-bold" onclick="buyShopItem('shield', 10)">10 🪙</button>
           </div>
+          <div class="d-flex justify-content-between align-items-center p-2 mb-2 bg-dark rounded border border-secondary">
+            <div><strong>⚡ Botas Súper Velocidad</strong><br><small class="text-muted">+40% de rapidez para esquivar</small></div>
+            <button class="btn btn-outline-success btn-sm fw-bold" onclick="buyShopItem('speed', 15)">15 🪙</button>
+          </div>
+          <div class="d-flex justify-content-between align-items-center p-2 mb-2 bg-dark rounded border border-secondary">
+            <div><strong>🧲 Imán de Monedas</strong><br><small class="text-muted">Atrae todas las monedas cercanas</small></div>
+            <button class="btn btn-outline-success btn-sm fw-bold" onclick="buyShopItem('magnet', 20)">20 🪙</button>
+          </div>
+          <div class="d-flex justify-content-between align-items-center p-2 mb-2 bg-dark rounded border border-secondary">
+            <div><strong>🔥 Cañón Láser Quádruple</strong><br><small class="text-muted">Dispara ráfagas destructivas</small></div>
+            <button class="btn btn-outline-success btn-sm fw-bold" onclick="buyShopItem('quadGun', 30)">30 🪙</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-          <div class="d-grid gap-2">
-            <button class="btn btn-outline-success btn-sm" onclick="toggleFullscreen()"><i class="fas fa-expand me-1"></i> Alternar Pantalla Completa</button>
-            <button class="btn btn-outline-warning btn-sm" onclick="location.reload()"><i class="fas fa-redo me-1"></i> Reiniciar Partida</button>
+  <!-- Modal Selector de Niveles / Partidas -->
+  <div class="modal fade" id="levelsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-info">
+          <h5 class="modal-title fw-bold text-info"><i class="fas fa-layer-group me-2"></i>Partidas & Niveles</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="list-group">
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary d-flex justify-content-between align-items-center" onclick="setLevel(1)">
+              <div><strong>Nivel 1: Nido de Hormigas</strong><br><small class="text-success">Héroe: Verde Neón 🟩</small></div>
+              <span class="badge bg-success">Iniciar</span>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary d-flex justify-content-between align-items-center" onclick="setLevel(2)">
+              <div><strong>Nivel 2: Invasión de Cucarachas</strong><br><small class="text-info">Héroe: Azul Eléctrico 🟦</small></div>
+              <span class="badge bg-info">Iniciar</span>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary d-flex justify-content-between align-items-center" onclick="setLevel(3)">
+              <div><strong>Nivel 3: Túnel de Gusanos</strong><br><small class="text-danger">Héroe: Rojo Fuego 🟥</small></div>
+              <span class="badge bg-danger">Iniciar</span>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary d-flex justify-content-between align-items-center" onclick="setLevel(4)">
+              <div><strong>Nivel 4: Cloaca de Ratones</strong><br><small class="text-purple" style="color: #d500f9;">Héroe: Púrpura Plasma 🟪</small></div>
+              <span class="badge bg-secondary">Iniciar</span>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary d-flex justify-content-between align-items-center" onclick="setLevel(5)">
+              <div><strong>Nivel 5: Horda Legendaria de Bichos</strong><br><small class="text-warning">Héroe: Dorado Legendario 🟨</small></div>
+              <span class="badge bg-warning text-dark">Iniciar</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 7 Juegos Arcade & 1v1 -->
+  <div class="modal fade" id="gamesModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-warning">
+          <h5 class="modal-title fw-bold text-warning"><i class="fas fa-gamepad me-2"></i>7 Juegos Arcade & Competencia 1v1</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="list-group">
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary" onclick="selectMiniGame(1)">
+              <strong>1. Arena Bichos (Supervivencia & Niveles)</strong><br><small class="text-muted">Modo principal con monedas, tienda y colores.</small>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary" onclick="selectMiniGame(2)">
+              <strong>2. Duelo 1v1 (Jugador vs Rival IA)</strong><br><small class="text-muted">Compite cara a cara disparando y esquivando.</small>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary" onclick="selectMiniGame(3)">
+              <strong>3. Carrera de Gusanos</strong><br><small class="text-muted">Esquiva obstáculos y llega a la meta antes que el tiempo acabe.</small>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary" onclick="selectMiniGame(4)">
+              <strong>4. Caza de Cucarachas Contrarreloj</strong><br><small class="text-muted">Elimina la mayor cantidad de cucarachas en 45 segundos.</small>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary" onclick="selectMiniGame(5)">
+              <strong>5. Defensa de Núcleo contra Hormigas</strong><br><small class="text-muted">Protege la base central de hordas incesantes.</small>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary" onclick="selectMiniGame(6)">
+              <strong>6. Laberinto de Bichos</strong><br><small class="text-muted">Recoge monedas sin tocar las patrullas de bichos.</small>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary" onclick="selectMiniGame(7)">
+              <strong>7. Gusano Snake Neón</strong><br><small class="text-muted">Come bichos pequeños para crecer tu estela neón.</small>
+            </button>
           </div>
         </div>
       </div>
@@ -185,10 +276,11 @@
   <div id="gameOverModal">
     <div class="modal-card">
       <h2 class="text-danger fw-bold mb-3"><i class="fas fa-skull-crossbones me-2"></i>PARTIDA FINALIZADA</h2>
-      <p class="text-muted mb-2">¡Has caído en la arena táctica!</p>
+      <p class="text-muted mb-2">¡Has caído en combate contra los bichos!</p>
       <div class="bg-black p-3 rounded mb-3 border border-success">
-        <h4 class="text-warning mb-1">Bajas Totales: <span id="finalKills">0</span></h4>
-        <p class="text-success small mb-0">+<span id="finalPoints">0</span> Puntos de Contribución para la Competencia</p>
+        <h4 class="text-warning mb-1">Bajas de Bichos: <span id="finalKills">0</span></h4>
+        <h5 class="text-info mb-1">🪙 Monedas Ganadas: <span id="finalCoins">0</span></h5>
+        <p class="text-success small mb-0">+<span id="finalPoints">0</span> Puntos de Contribución para la Plataforma</p>
       </div>
       {% if usuario %}
         <button id="btnGuardarScore" class="btn btn-success btn-lg w-100 fw-bold mb-2 shadow" onclick="enviarPuntuacion()">Guardar en el Ranking Global</button>
@@ -199,16 +291,36 @@
     </div>
   </div>
 
-  <!-- Modal Competencia / Leaderboard -->
-  <div class="modal fade" id="rankingModal" tabindex="-1">
+  <!-- Modal Herramientas PC -->
+  <div class="modal fade" id="pcToolModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content bg-dark border-success text-white">
+      <div class="modal-content">
         <div class="modal-header border-success">
-          <h5 class="modal-title fw-bold text-success"><i class="fas fa-trophy me-2"></i>Ranking de Competencia CodeBox</h5>
+          <h5 class="modal-title fw-bold text-success"><i class="fas fa-keyboard me-2"></i>Controles y Configuración PC</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <p class="text-muted small">Compite contra otros usuarios de la plataforma acumulando bajas en la arena.</p>
+          <ul class="list-unstyled small text-light mb-3">
+            <li><strong>Movimiento:</strong> <code>W</code>, <code>A</code>, <code>S</code>, <code>D</code> o Flechas.</li>
+            <li><strong>Apuntar:</strong> Mueve el <code>Cursor del Mouse</code>.</li>
+            <li><strong>Disparar:</strong> Click Izquierdo o <code>Espacio</code>.</li>
+            <li><strong>Pausa:</strong> Tecla <code>P</code> o tecla <code>Esc</code>.</li>
+            <li><strong>Pantalla Completa:</strong> Tecla <code>F</code>.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Ranking -->
+  <div class="modal fade" id="rankingModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-success">
+          <h5 class="modal-title fw-bold text-success"><i class="fas fa-trophy me-2"></i>Ranking Global de la Comunidad</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
           <div class="list-group">
             {% for top in top_jugadores %}
               <div class="list-group-item bg-black text-white d-flex justify-content-between align-items-center border-secondary">
@@ -237,16 +349,89 @@
     window.addEventListener('resize', resize);
     resize();
 
-    function toggleFullscreen() {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen();
-      } else {
-        if (document.exitFullscreen) document.exitFullscreen();
-      }
+    // Toggle Menú Desplegable Compacto
+    function toggleDropdownMenu() {
+      const dd = document.getElementById('compactDropdown');
+      dd.classList.toggle('show');
     }
+    document.addEventListener('click', function(e) {
+      const container = document.getElementById('dropdown-menu-container');
+      if (!container.contains(e.target)) {
+        document.getElementById('compactDropdown').classList.remove('show');
+      }
+    });
 
     let isPaused = true;
     let challengeAccepted = false;
+    let gameOver = false;
+
+    // Estado del Juego y Jugador
+    let currentLevel = 1;
+    let coinsCollected = 0;
+    let currentMiniGameMode = 1;
+
+    const inventory = {
+      shield: false,
+      speedBonus: 0,
+      magnet: false,
+      quadGun: false
+    };
+
+    const player = {
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2,
+      radius: 18,
+      angle: 0,
+      speed: 5.2,
+      hp: 100,
+      kills: 0,
+      color: '#00e676',
+      colorName: 'Verde Neón'
+    };
+
+    // Rival para modo 1v1
+    const rival = {
+      x: 100,
+      y: 100,
+      radius: 18,
+      angle: 0,
+      hp: 100,
+      speed: 3.8,
+      color: '#ff3d00'
+    };
+
+    let enemies = [];
+    let bullets = [];
+    let rivalBullets = [];
+    let coins = [];
+    let particles = [];
+    let joyIn = { x: 0, y: 0 };
+    let mobileFiring = false;
+
+    // Actualización del Color del Héroe según Nivel y Monedas
+    function updateHeroColor() {
+      if (currentLevel >= 5 || coinsCollected >= 60) {
+        player.color = '#ffd700'; // Dorado
+        player.colorName = 'Dorado Legendario 🟨';
+      } else if (currentLevel >= 4 || coinsCollected >= 40) {
+        player.color = '#d500f9'; // Púrpura
+        player.colorName = 'Púrpura Plasma 🟪';
+      } else if (currentLevel >= 3 || coinsCollected >= 25) {
+        player.color = '#ff1744'; // Rojo
+        player.colorName = 'Rojo Fuego 🟥';
+      } else if (currentLevel >= 2 || coinsCollected >= 10) {
+        player.color = '#00e5ff'; // Azul
+        player.colorName = 'Azul Eléctrico 🟦';
+      } else {
+        player.color = '#00e676'; // Verde
+        player.colorName = 'Verde Neón 🟩';
+      }
+
+      document.getElementById('hud-hero-color').textContent = player.colorName;
+      document.getElementById('hud-hero-color').style.color = player.color;
+      document.getElementById('hud-coins').textContent = coinsCollected;
+      document.getElementById('diff-val').textContent = `Nivel ${currentLevel}`;
+    }
 
     function responderReto(aceptado) {
       challengeAccepted = aceptado;
@@ -258,34 +443,67 @@
       if (gameOver) return;
       isPaused = !isPaused;
       document.getElementById('pauseModal').style.display = isPaused ? 'flex' : 'none';
+      document.getElementById('compactDropdown').classList.remove('show');
     }
 
-    // Jugador
-    const player = {
-      x: window.innerWidth / 2,
-      y: window.innerHeight / 2,
-      radius: 18,
-      angle: 0,
-      speed: 5.2,
-      hp: 100,
-      kills: 0
-    };
+    // Modal Helpers
+    function openShopModal() {
+      document.getElementById('shopCoinsVal').textContent = coinsCollected;
+      const modal = new bootstrap.Modal(document.getElementById('shopModal'));
+      modal.show();
+      document.getElementById('compactDropdown').classList.remove('show');
+    }
 
-    let enemies = [];
-    let bullets = [];
-    let particles = [];
-    let joyIn = { x: 0, y: 0 };
-    let mobileFiring = false;
-    let gameOver = false;
+    function openLevelsModal() {
+      const modal = new bootstrap.Modal(document.getElementById('levelsModal'));
+      modal.show();
+      document.getElementById('compactDropdown').classList.remove('show');
+    }
 
-    // Elementos HUD cacheados para máxima fluidez en PC (60 FPS)
-    const hudWeapon = document.getElementById('weapon-name');
-    const hudDiff = document.getElementById('diff-val');
-    const hudHpVal = document.getElementById('hp-val');
-    const hudHpFill = document.getElementById('hp-fill');
-    const hudKills = document.getElementById('kills-val');
+    function openGamesModal() {
+      const modal = new bootstrap.Modal(document.getElementById('gamesModal'));
+      modal.show();
+      document.getElementById('compactDropdown').classList.remove('show');
+    }
 
-    // Controles de Teclado PC (WASD / Flechas)
+    function buyShopItem(item, cost) {
+      if (coinsCollected >= cost) {
+        coinsCollected -= cost;
+        if (item === 'shield') inventory.shield = true;
+        if (item === 'speed') inventory.speedBonus = 2.0;
+        if (item === 'magnet') inventory.magnet = true;
+        if (item === 'quadGun') inventory.quadGun = true;
+        alert('¡Compra realizada con éxito!');
+        updateHeroColor();
+        document.getElementById('shopCoinsVal').textContent = coinsCollected;
+      } else {
+        alert('No tienes suficientes monedas recolectadas.');
+      }
+    }
+
+    function setLevel(lvl) {
+      currentLevel = lvl;
+      enemies = [];
+      coins = [];
+      updateHeroColor();
+      bootstrap.Modal.getInstance(document.getElementById('levelsModal')).hide();
+    }
+
+    function selectMiniGame(mode) {
+      currentMiniGameMode = mode;
+      enemies = [];
+      bullets = [];
+      coins = [];
+      if (mode === 2) {
+        rival.hp = 100;
+        rival.x = canvas.width - 150;
+        rival.y = canvas.height - 150;
+      }
+      bootstrap.Modal.getInstance(document.getElementById('gamesModal')).hide();
+      alert(`¡Iniciado Modo ${mode}!`);
+    }
+
+    // Controles PC
     const keys = { w: false, a: false, s: false, d: false, arrowup: false, arrowdown: false, arrowleft: false, arrowright: false, space: false };
     let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2, mouseFiring = false;
 
@@ -297,7 +515,6 @@
       if (k === 'd' || e.key === 'ArrowRight') keys.d = true;
       if (e.key === ' ') keys.space = true;
       if (k === 'p' || e.key === 'Escape') togglePause();
-      if (k === 'f') toggleFullscreen();
     });
 
     window.addEventListener('keyup', e => {
@@ -310,90 +527,49 @@
     });
 
     window.addEventListener('mousemove', e => {
-      mouseX = e.clientX;
-      mouseY = e.clientY;
+      mouseX = e.clientX; mouseY = e.clientY;
     });
+    window.addEventListener('mousedown', e => { if (e.button === 0) mouseFiring = true; });
+    window.addEventListener('mouseup', e => { if (e.button === 0) mouseFiring = false; });
 
-    window.addEventListener('mousedown', e => {
-      if (e.button === 0) mouseFiring = true;
-    });
-
-    window.addEventListener('mouseup', e => {
-      if (e.button === 0) mouseFiring = false;
-    });
-
-    // GENERADOR DINÁMICO DE 1000 OPCIONES DE ATAQUE
-    function getWeaponConfig() {
-      const k = player.kills;
-      const weaponIndex = Math.min(1000, k + 1);
-      
-      if (k >= 30) {
-        return { name: `Láser Hiper-Plasma #${weaponIndex}`, count: 7, spread: 0.35, speed: 17, radius: 6, color: '#ff00ff', cooldown: 5 };
-      } else if (k >= 20) {
-        return { name: `Cañón Cuádruple Óptico #${weaponIndex}`, count: 4, spread: 0.2, speed: 16, radius: 5.5, color: '#00ffff', cooldown: 7 };
-      } else if (k >= 10) {
-        return { name: `Tridente de Fotones #${weaponIndex}`, count: 3, spread: 0.25, speed: 15, radius: 5, color: '#00e676', cooldown: 8 };
-      } else if (k >= 5) {
-        return { name: `Doble Blaster Táctico #${weaponIndex}`, count: 2, spread: 0.1, speed: 14, radius: 4.5, color: '#ffff00', cooldown: 9 };
-      } else {
-        return { name: `Pistola Estándar #${weaponIndex}`, count: 1, spread: 0, speed: 13, radius: 4, color: '#ffffff', cooldown: 11 };
-      }
-    }
-
-    function updateHud() {
-      const w = getWeaponConfig();
-      hudWeapon.innerText = w.name;
-      const diffLevel = Math.min(1000, Math.floor(player.kills * 1.5) + 1);
-      hudDiff.innerText = `Nivel ${diffLevel}`;
-    }
-
-    // Partículas optimizadas
-    function spawnParticles(x, y, color, count = 8) {
-      for (let i = 0; i < count; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 4 + 1;
-        particles.push({
-          x: x, y: y,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed,
-          radius: Math.random() * 2.5 + 1,
-          color: color,
-          alpha: 1,
-          decay: Math.random() * 0.04 + 0.02
-        });
-      }
-    }
-
-    // Generador de Enemigos
-    function spawnEnemy() {
+    // Generador de Bichos (Cucarachas, Ratones, Hormigas, Gusanos)
+    function spawnInsectEnemy() {
       if (gameOver || isPaused) return;
-      const diffLevel = Math.min(1000, Math.floor(player.kills * 1.5) + 1);
-      const maxEnemies = Math.min(25, 6 + Math.floor(diffLevel / 10));
+      const insectTypes = ['cucaracha', 'raton', 'hormiga', 'gusano'];
+      const chosenType = insectTypes[Math.floor(Math.random() * insectTypes.length)];
 
-      if (enemies.length < maxEnemies) {
-        let spawnX, spawnY;
-        if (Math.random() > 0.5) {
-          spawnX = Math.random() > 0.5 ? 0 : canvas.width;
-          spawnY = Math.random() * canvas.height;
-        } else {
-          spawnX = Math.random() * canvas.width;
-          spawnY = Math.random() > 0.5 ? 0 : canvas.height;
-        }
+      let spawnX = Math.random() > 0.5 ? 0 : canvas.width;
+      let spawnY = Math.random() * canvas.height;
+
+      let radius = 15;
+      let speed = 2.0 + currentLevel * 0.3;
+      let color = '#8B4513';
+
+      if (chosenType === 'cucaracha') {
+        speed = 3.2; color = '#5c4033'; radius = 16;
+      } else if (chosenType === 'raton') {
+        speed = 2.8; color = '#9e9e9e'; radius = 18;
+      } else if (chosenType === 'hormiga') {
+        speed = 2.2; color = '#1a1a1a'; radius = 13;
+      } else if (chosenType === 'gusano') {
+        speed = 1.8; color = '#e91e63'; radius = 14;
+      }
+
+      if (enemies.length < 20 + currentLevel * 2) {
         enemies.push({
-          x: spawnX,
-          y: spawnY,
-          radius: 14,
-          color: diffLevel > 50 ? '#ff0055' : '#ff3d00',
-          speed: 1.5 + (diffLevel * 0.015) + Math.random() * 0.5
+          x: spawnX, y: spawnY,
+          type: chosenType,
+          radius: radius,
+          speed: speed,
+          color: color,
+          legAnim: 0
         });
       }
     }
-    setInterval(spawnEnemy, Math.max(350, 1800 - (player.kills * 15)));
+    setInterval(spawnInsectEnemy, 1000);
 
-    // Controles Táctiles (Joystick Móvil)
-    const jz = document.getElementById('jz');
-    const jk = document.getElementById('jk');
-    const fb2 = document.getElementById('fb2');
+    // Controles táctiles
+    const jz = document.getElementById('jz'), jk = document.getElementById('jk'), fb2 = document.getElementById('fb2');
     let jcx = 0, jcy = 0, jid = null;
 
     jz.addEventListener('touchstart', e => {
@@ -401,90 +577,56 @@
       const t = e.changedTouches[0];
       jid = t.identifier;
       const r = jz.getBoundingClientRect();
-      jcx = r.left + 50;
-      jcy = r.top + 50;
+      jcx = r.left + 45; jcy = r.top + 45;
     }, { passive: false });
 
     jz.addEventListener('touchmove', e => {
       e.preventDefault();
       for (const t of e.changedTouches) {
         if (t.identifier !== jid) continue;
-        const dx = t.clientX - jcx;
-        const dy = t.clientY - jcy;
-        const d = Math.hypot(dx, dy);
-        const mx = 35;
+        const dx = t.clientX - jcx, dy = t.clientY - jcy;
+        const d = Math.hypot(dx, dy), mx = 30;
         const nx = d > mx ? (dx / d) * mx : dx;
         const ny = d > mx ? (dy / d) * mx : dy;
-
-        jk.style.left = (30 + nx) + 'px';
-        jk.style.top = (30 + ny) + 'px';
+        jk.style.left = (25 + nx) + 'px';
+        jk.style.top = (25 + ny) + 'px';
         joyIn = { x: nx / mx, y: ny / mx };
       }
     }, { passive: false });
 
     jz.addEventListener('touchend', e => {
       e.preventDefault();
-      jid = null;
-      joyIn = { x: 0, y: 0 };
-      jk.style.left = '30px';
-      jk.style.top = '30px';
+      jid = null; joyIn = { x: 0, y: 0 };
+      jk.style.left = '25px'; jk.style.top = '25px';
     }, { passive: false });
 
-    fb2.addEventListener('touchstart', e => {
-      e.preventDefault();
-      mobileFiring = true;
-    }, { passive: false });
-
-    fb2.addEventListener('touchend', e => {
-      e.preventDefault();
-      mobileFiring = false;
-    }, { passive: false });
+    fb2.addEventListener('touchstart', e => { e.preventDefault(); mobileFiring = true; }, { passive: false });
+    fb2.addEventListener('touchend', e => { e.preventDefault(); mobileFiring = false; }, { passive: false });
 
     let fireCooldown = 0;
     function shoot() {
       if (fireCooldown <= 0 && !gameOver && !isPaused) {
-        const w = getWeaponConfig();
-        fireCooldown = w.cooldown;
+        fireCooldown = 9;
+        const speed = 15;
 
-        if (w.count === 1) {
+        if (inventory.quadGun) {
+          [-0.2, -0.07, 0.07, 0.2].forEach(angleOffset => {
+            bullets.push({
+              x: player.x + Math.cos(player.angle + angleOffset) * 22,
+              y: player.y + Math.sin(player.angle + angleOffset) * 22,
+              vx: Math.cos(player.angle + angleOffset) * speed,
+              vy: Math.sin(player.angle + angleOffset) * speed,
+              radius: 5, color: player.color
+            });
+          });
+        } else {
           bullets.push({
             x: player.x + Math.cos(player.angle) * 22,
             y: player.y + Math.sin(player.angle) * 22,
-            vx: Math.cos(player.angle) * w.speed,
-            vy: Math.sin(player.angle) * w.speed,
-            radius: w.radius,
-            color: w.color
+            vx: Math.cos(player.angle) * speed,
+            vy: Math.sin(player.angle) * speed,
+            radius: 5, color: player.color
           });
-        } else if (w.count === 2) {
-          const perp = player.angle + Math.PI/2;
-          bullets.push({
-            x: player.x + Math.cos(player.angle) * 22 + Math.cos(perp) * 6,
-            y: player.y + Math.sin(player.angle) * 22 + Math.sin(perp) * 6,
-            vx: Math.cos(player.angle) * w.speed,
-            vy: Math.sin(player.angle) * w.speed,
-            radius: w.radius,
-            color: w.color
-          });
-          bullets.push({
-            x: player.x + Math.cos(player.angle) * 22 - Math.cos(perp) * 6,
-            y: player.y + Math.sin(player.angle) * 22 - Math.sin(perp) * 6,
-            vx: Math.cos(player.angle) * w.speed,
-            vy: Math.sin(player.angle) * w.speed,
-            radius: w.radius,
-            color: w.color
-          });
-        } else {
-          for (let i = 0; i < w.count; i++) {
-            const spreadAngle = player.angle - w.spread/2 + (w.spread / (w.count - 1)) * i;
-            bullets.push({
-              x: player.x + Math.cos(player.angle) * 22,
-              y: player.y + Math.sin(player.angle) * 22,
-              vx: Math.cos(spreadAngle) * w.speed,
-              vy: Math.sin(spreadAngle) * w.speed,
-              radius: w.radius,
-              color: w.color
-            });
-          }
         }
       }
     }
@@ -492,22 +634,20 @@
     function update() {
       if (gameOver || isPaused) return;
 
-      let moveX = joyIn.x;
-      let moveY = joyIn.y;
-
+      // Movimiento
+      let moveX = joyIn.x; let moveY = joyIn.y;
       if (keys.w || keys.arrowup) moveY = -1;
       if (keys.s || keys.arrowdown) moveY = 1;
       if (keys.a || keys.arrowleft) moveX = -1;
       if (keys.d || keys.arrowright) moveX = 1;
 
-      const magnitude = Math.hypot(moveX, moveY);
-      if (magnitude > 0.1) {
-        const normX = moveX / (magnitude > 1 ? magnitude : 1);
-        const normY = moveY / (magnitude > 1 ? magnitude : 1);
-        player.x += normX * player.speed;
-        player.y += normY * player.speed;
-        if (keys.w || keys.a || keys.s || keys.d || keys.arrowup || keys.arrowdown || keys.arrowleft || keys.arrowright) {
-          player.angle = Math.atan2(normY, normX);
+      const currentSpeed = player.speed + inventory.speedBonus;
+      const mag = Math.hypot(moveX, moveY);
+      if (mag > 0.1) {
+        player.x += (moveX / mag) * currentSpeed;
+        player.y += (moveY / mag) * currentSpeed;
+        if (!mouseFiring && !mobileFiring) {
+          player.angle = Math.atan2(moveY, moveX);
         }
       }
 
@@ -521,75 +661,97 @@
       if (fireCooldown > 0) fireCooldown--;
       if (mobileFiring || mouseFiring || keys.space) shoot();
 
-      updateHud();
-
       // Proyectiles
       bullets = bullets.filter(b => {
-        b.x += b.vx;
-        b.y += b.vy;
+        b.x += b.vx; b.y += b.vy;
         return !(b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height);
       });
 
-      // Partículas
-      particles.forEach(p => {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.alpha -= p.decay;
+      // Monedas e Imán
+      coins.forEach(c => {
+        if (inventory.magnet) {
+          const dx = player.x - c.x, dy = player.y - c.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist < 220) {
+            c.x += (dx / dist) * 6;
+            c.y += (dy / dist) * 6;
+          }
+        }
       });
-      particles = particles.filter(p => p.alpha > 0);
 
-      // Enemigos
+      for (let i = coins.length - 1; i >= 0; i--) {
+        if (Math.hypot(player.x - coins[i].x, player.y - coins[i].y) < player.radius + 14) {
+          coins.splice(i, 1);
+          coinsCollected++;
+          updateHeroColor();
+        }
+      }
+
+      // Enemigos Bichos
       for (let i = enemies.length - 1; i >= 0; i--) {
         let en = enemies[i];
-        const angleToPlayer = Math.atan2(player.y - en.y, player.x - en.x);
-        en.x += Math.cos(angleToPlayer) * en.speed;
-        en.y += Math.sin(angleToPlayer) * en.speed;
+        en.legAnim += 0.3;
+        const angle = Math.atan2(player.y - en.y, player.x - en.x);
+        en.x += Math.cos(angle) * en.speed;
+        en.y += Math.sin(angle) * en.speed;
 
-        // Balas vs Enemigos
+        // Colisión Bala con Bicho
         for (let j = bullets.length - 1; j >= 0; j--) {
           let b = bullets[j];
           if (Math.hypot(b.x - en.x, b.y - en.y) < en.radius + b.radius) {
-            spawnParticles(en.x, en.y, b.color, 10);
+            // Soltar Moneda
+            coins.push({ x: en.x, y: en.y, rot: 0 });
             enemies.splice(i, 1);
             bullets.splice(j, 1);
             player.kills++;
-            
-            // CURAR HP POR KILL (+8 HP)
-            player.hp = Math.min(100, player.hp + 8);
-            hudHpVal.textContent = Math.floor(player.hp);
-            hudHpFill.style.width = player.hp + '%';
-            hudKills.textContent = player.kills;
+            document.getElementById('kills-val').textContent = player.kills;
+
+            // Subir nivel automáticamente cada 10 bajas
+            if (player.kills % 10 === 0 && currentLevel < 5) {
+              currentLevel++;
+              updateHeroColor();
+            }
             break;
           }
         }
 
-        // Enemigo vs Jugador
+        // Bicho golpea Jugador
         if (enemies[i] && Math.hypot(player.x - enemies[i].x, player.y - enemies[i].y) < player.radius + enemies[i].radius) {
-          player.hp = Math.max(0, player.hp - 0.6);
-          hudHpVal.textContent = Math.floor(player.hp);
-          hudHpFill.style.width = player.hp + '%';
-
-          if (player.hp <= 0 && !gameOver) {
-            triggerGameOver();
+          if (inventory.shield) {
+            inventory.shield = false;
+            enemies.splice(i, 1);
+            alert('¡Tu Escudo te protegió y destruyó al bicho!');
+          } else {
+            player.hp = Math.max(0, player.hp - 0.7);
+            document.getElementById('hp-val').textContent = Math.floor(player.hp);
+            document.getElementById('hp-fill').style.width = player.hp + '%';
+            if (player.hp <= 0 && !gameOver) {
+              triggerGameOver();
+            }
           }
         }
+      }
+
+      // Modo 1v1 lógica
+      if (currentMiniGameMode === 2) {
+        const angleToPlayer = Math.atan2(player.y - rival.y, player.x - rival.x);
+        rival.x += Math.cos(angleToPlayer) * rival.speed;
+        rival.y += Math.sin(angleToPlayer) * rival.speed;
+        rival.angle = angleToPlayer;
       }
     }
 
     function triggerGameOver() {
       gameOver = true;
-      const diffLevel = Math.min(1000, Math.floor(player.kills * 1.5) + 1);
-      let estPoints = player.kills * 2;
-      if (diffLevel >= 1000) estPoints += 10000;
-      else if (diffLevel >= 785) estPoints += 2500;
-
-      document.getElementById('finalKills').textContent = `${player.kills} (Nivel ${diffLevel})`;
-      document.getElementById('finalPoints').textContent = estPoints;
+      const pts = player.kills * 2 + coinsCollected;
+      document.getElementById('finalKills').textContent = player.kills;
+      document.getElementById('finalCoins').textContent = coinsCollected;
+      document.getElementById('finalPoints').textContent = pts;
       document.getElementById('gameOverModal').style.display = 'flex';
     }
 
     function enviarPuntuacion() {
-      const diffLevel = Math.min(1000, Math.floor(player.kills * 1.5) + 1);
+      const diffLevel = currentLevel;
       fetch('/juego-arena/guardar_score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -597,24 +759,70 @@
       })
       .then(res => res.json())
       .then(data => {
-        if(data.status === 'success') {
-          let msg = '¡Puntuación guardada con éxito!\n\n';
-          if (data.mensaje_reto) {
-            msg += data.mensaje_reto + '\n\n';
-          }
-          msg += 'Total ganado: ' + data.puntos_ganados + ' puntos de contribución.';
-          alert(msg);
-          location.reload();
-        }
+        alert('¡Récord guardado con éxito!');
+        location.reload();
       });
+    }
+
+    // Dibujo de Bichos (Cucaracha, Ratón, Hormiga, Gusano)
+    function drawInsect(en) {
+      ctx.save();
+      ctx.translate(en.x, en.y);
+      const angle = Math.atan2(player.y - en.y, player.x - en.x);
+      ctx.rotate(angle);
+
+      if (en.type === 'cucaracha') {
+        // Cuerpo cucaracha
+        ctx.fillStyle = '#5c4033';
+        ctx.beginPath(); ctx.ellipse(0, 0, 16, 9, 0, 0, Math.PI*2); ctx.fill();
+        // Antenas
+        ctx.strokeStyle = '#3e2723'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(14, -3); ctx.lineTo(24, -8); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(14, 3); ctx.lineTo(24, 8); ctx.stroke();
+        // 6 Patas
+        for (let s = -1; s <= 1; s += 2) {
+          for (let p = -8; p <= 8; p += 8) {
+            ctx.beginPath(); ctx.moveTo(p, s * 7); ctx.lineTo(p + Math.sin(en.legAnim) * 3, s * 16); ctx.stroke();
+          }
+        }
+      } else if (en.type === 'raton') {
+        // Cuerpo ratón
+        ctx.fillStyle = '#9e9e9e';
+        ctx.beginPath(); ctx.ellipse(0, 0, 16, 11, 0, 0, Math.PI*2); ctx.fill();
+        // Orejas
+        ctx.fillStyle = '#ff80ab';
+        ctx.beginPath(); ctx.arc(4, -8, 4, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(4, 8, 4, 0, Math.PI*2); ctx.fill();
+        // Cola
+        ctx.strokeStyle = '#ff80ab'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(-16, 0); ctx.quadraticCurveTo(-24, Math.sin(en.legAnim)*6, -30, 0); ctx.stroke();
+      } else if (en.type === 'hormiga') {
+        // Hormiga segmentada
+        ctx.fillStyle = '#111111';
+        ctx.beginPath(); ctx.arc(-8, 0, 6, 0, Math.PI*2); ctx.fill(); // Abdomen
+        ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI*2); ctx.fill();  // Tórax
+        ctx.beginPath(); ctx.arc(8, 0, 5, 0, Math.PI*2); ctx.fill();  // Cabeza
+        // Antenas
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(10, -2); ctx.lineTo(16, -6); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(10, 2); ctx.lineTo(16, 6); ctx.stroke();
+      } else if (en.type === 'gusano') {
+        // Gusano segmentado ondulante
+        ctx.fillStyle = '#e91e63';
+        for (let i = 0; i < 4; i++) {
+          ctx.beginPath();
+          ctx.arc(-12 + i * 8, Math.sin(en.legAnim + i) * 3, 5, 0, Math.PI*2);
+          ctx.fill();
+        }
+      }
+      ctx.restore();
     }
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Rejilla de Fondo Neón
-      ctx.strokeStyle = '#122616';
-      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = '#102214'; ctx.lineWidth = 1;
       for (let x = 0; x < canvas.width; x += 60) {
         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
       }
@@ -622,53 +830,60 @@
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
       }
 
-      // Partículas
-      particles.forEach(p => {
+      // Dibujar Monedas
+      coins.forEach(c => {
         ctx.save();
-        ctx.globalAlpha = p.alpha;
-        ctx.fillStyle = p.color;
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ffd700';
+        ctx.shadowBlur = 10; ctx.shadowColor = '#ffd700';
+        ctx.beginPath(); ctx.arc(c.x, c.y, 8, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('$', c.x, c.y);
         ctx.restore();
       });
 
-      // Enemigos
-      enemies.forEach(en => {
-        ctx.save();
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = en.color;
-        ctx.fillStyle = en.color;
-        ctx.beginPath(); ctx.arc(en.x, en.y, en.radius, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.stroke();
-        ctx.restore();
-      });
+      // Dibujar Bichos
+      enemies.forEach(en => drawInsect(en));
 
-      // Proyectiles
-      ctx.save();
+      // Balas
       bullets.forEach(b => {
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = b.color;
-        ctx.fillStyle = b.color;
-        ctx.beginPath(); ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2); ctx.fill();
+        ctx.save();
+        ctx.shadowBlur = 8; ctx.shadowColor = b.color; ctx.fillStyle = b.color;
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.radius, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
       });
-      ctx.restore();
 
-      // Jugador
+      // Rival 1v1
+      if (currentMiniGameMode === 2) {
+        ctx.save();
+        ctx.translate(rival.x, rival.y);
+        ctx.rotate(rival.angle);
+        ctx.fillStyle = rival.color;
+        ctx.beginPath(); ctx.arc(0, 0, rival.radius, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.fillRect(10, -4, 12, 8);
+        ctx.restore();
+      }
+
+      // Jugador (Color dinámico con halo)
       ctx.save();
       ctx.translate(player.x, player.y);
       ctx.rotate(player.angle);
 
       ctx.shadowBlur = 15;
-      ctx.shadowColor = '#00e676';
-      ctx.fillStyle = '#00e676';
-      ctx.beginPath();
-      ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      ctx.shadowColor = player.color;
+      ctx.fillStyle = player.color;
+      ctx.beginPath(); ctx.arc(0, 0, player.radius, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
 
+      // Cañón arma
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(10, -4, 14, 8);
+
+      // Si tiene escudo activo
+      if (inventory.shield) {
+        ctx.strokeStyle = '#00ffff'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(0, 0, player.radius + 6, 0, Math.PI * 2); ctx.stroke();
+      }
       ctx.restore();
     }
 
@@ -677,7 +892,6 @@
       draw();
       requestAnimationFrame(loop);
     }
-
     loop();
   </script>
 </body>

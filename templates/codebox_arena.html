@@ -474,7 +474,7 @@
       x: window.innerWidth / 2,
       y: window.innerHeight / 2,
       radius: 18,
-      angle: 0,
+      angle: -Math.PI / 2, // Apuntando hacia arriba por defecto
       speed: 5.2,
       hp: 100,
       kills: 0,
@@ -850,14 +850,22 @@
 
       const currentSpeed = player.speed + inventory.speedBonus;
       const mag = Math.hypot(moveX, moveY);
+      let aimed = false;
+
       if (mag > 0.1) {
         player.x += (moveX / mag) * currentSpeed;
         player.y += (moveY / mag) * currentSpeed;
         player.angle = Math.atan2(moveY, moveX);
+        aimed = true;
       }
 
       if (Math.abs(mouseX - window.innerWidth / 2) > 10 || Math.abs(mouseY - window.innerHeight / 2) > 10) {
         player.angle = Math.atan2(mouseY - player.y, mouseX - player.x);
+        aimed = true;
+      }
+
+      if (!aimed && mag <= 0.1 && (Math.abs(mouseX - window.innerWidth / 2) <= 10 && Math.abs(mouseY - window.innerHeight / 2) <= 10)) {
+        player.angle = -Math.PI / 2; // Apuntar hacia arriba por defecto cuando está quieto
       }
 
       player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));

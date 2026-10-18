@@ -16,30 +16,24 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 is_render = os.environ.get("RENDER") or not os.access(BASE_DIR, os.W_OK)
 
-# Selección garantizada y robusta de base de datos persistente en Render (/data)
+# Selección garantizada y robusta de base de datos persistente en Render (/data) sin modificar el punto de montaje raíz
 env_db = os.environ.get("DATABASE_PATH", "/data/community_database.db")
-if is_render and not env_db.startswith("/data"):
+if is_render:
     DB_PATH = "/data/community_database.db"
 else:
     DB_PATH = env_db
 
 try:
     db_dir = os.path.dirname(DB_PATH)
-    if db_dir:
+    if db_dir and db_dir != "/data" and not os.path.exists(db_dir):
         os.makedirs(db_dir, exist_ok=True)
     test_conn = sqlite3.connect(DB_PATH)
     test_conn.close()
     print(f"✅ Base de datos conectada correctamente en: {DB_PATH}")
 except Exception as e:
-    print(f"⚠️ Advertencia con {DB_PATH} ({e}). Asegurando directorio /data...")
-    try:
-        os.makedirs("/data", exist_ok=True)
-        DB_PATH = "/data/community_database.db"
-        test_conn = sqlite3.connect(DB_PATH)
-        test_conn.close()
-    except Exception:
-        DB_PATH = os.path.join(BASE_DIR, "community_database.db")
-        os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    print(f"⚠️ Error conectando a {DB_PATH}: {e}. Usando base local de respaldo.")
+    DB_PATH = os.path.join(BASE_DIR, "community_database.db")
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
 # Migración/Sincronización segura de datos locales a /data si fuera necesario
 local_fallback_db = os.path.join(BASE_DIR, "community_database.db")

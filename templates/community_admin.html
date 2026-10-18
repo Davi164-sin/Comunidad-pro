@@ -85,6 +85,9 @@
                 <button class="nav-link fw-bold" id="anuncios-tab" data-bs-toggle="tab" data-bs-target="#anuncios" type="button">Anuncios</button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold text-success" id="niveles-tab" data-bs-toggle="tab" data-bs-target="#niveles" type="button"><i class="fas fa-layer-group me-1"></i> Gestión de Niveles</button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link fw-bold text-info" id="personalizar-tab" data-bs-toggle="tab" data-bs-target="#personalizar" type="button"><i class="fas fa-paint-brush me-1"></i> Personalizar</button>
             </li>
             <li class="nav-item" role="presentation">
@@ -434,6 +437,35 @@
             </div>
 
             <!-- Arquitectura & Sistema -->
+            <!-- Gestión de Niveles del Juego -->
+            <div class="tab-pane fade" id="niveles" role="tabpanel">
+                <div class="card p-4">
+                    <h4 class="fw-bold mb-3"><i class="fas fa-layer-group text-success me-2"></i>Crear y Administrar Niveles del Juego</h4>
+                    <p class="text-muted">Como administrador, puedes añadir nuevos niveles, configurar su dificultad y velocidad de los bichos (hasta el nivel 1000).</p>
+                    <form action="{{ url_for('admin_nivel_agregar') }}" method="POST" class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <label class="form-label">Número de Nivel (1 - 1000)</label>
+                            <input type="number" name="numero_nivel" class="form-control" min="1" max="1000" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Nombre del Nivel</label>
+                            <input type="text" name="nombre_nivel" class="form-control" placeholder="Ej: Zona Extrema" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Velocidad Bichos</label>
+                            <input type="number" step="0.1" name="bichos_velocidad" class="form-control" value="1.5" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Descripción</label>
+                            <input type="text" name="descripcion" class="form-control" placeholder="Ej: Horda pesada de cucarachas">
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-success fw-bold"><i class="fas fa-plus me-1"></i> Guardar / Añadir Nivel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <div class="tab-pane fade" id="arquitectura" role="tabpanel">
                 <div class="card p-4">
                     <h4 class="fw-bold mb-3"><i class="fas fa-sitemap text-warning me-2"></i>Arquitectura de la Plataforma [Todo Incluido]</h4>

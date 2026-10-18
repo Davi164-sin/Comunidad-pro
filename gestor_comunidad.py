@@ -79,6 +79,24 @@ def init_db():
         conn.commit()
     except sqlite3.OperationalError:
         pass
+
+    try:
+        c.execute("ALTER TABLE usuarios ADD COLUMN nivel_maximo INTEGER DEFAULT 1")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
+    # Tabla de niveles personalizados gestionados por el administrador
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS niveles_personalizados (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            numero_nivel INTEGER UNIQUE NOT NULL,
+            nombre_nivel TEXT NOT NULL,
+            bichos_velocidad REAL DEFAULT 1.5,
+            descripcion TEXT,
+            creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
     
     # Tabla de perfiles de creadores / talentos
     c.execute('''
@@ -964,6 +982,29 @@ def admin_agregar_enlace():
     flash("Enlace de grupo agregado.", "success")
     return redirect(url_for('admin_panel'))
 
+@app.route('/admin/nivel/agregar', methods=['POST'])
+def admin_agregar_nivel():
+    user = get_current_user()
+    if not user or user['rol'] not in ['admin', 'moderador']:
+        return redirect(url_for('index'))
+    
+    try:
+        numero_nivel = int(request.form.get('numero_nivel', 1))
+        nombre_nivel = request.form.get('nombre_nivel', 'Nuevo Nivel')
+        bichos_velocidad = float(request.form.get('bichos_velocidad', 1.5))
+        descripcion = request.form.get('descripcion', '')
+
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("INSERT OR REPLACE INTO niveles_personalizados (numero_nivel, nombre_nivel, bichos_velocidad, descripcion) VALUES (?, ?, ?, ?)",
+                  (numero_nivel, nombre_nivel, bichos_velocidad, descripcion))
+        conn.commit()
+        conn.close()
+        flash("Nivel personalizado agregado/actualizado con éxito.", "success")
+    except Exception as e:
+        flash(f"Error al agregar nivel: {e}", "error")
+    return redirect(url_for('admin_panel'))
+
 @app.route('/admin/enlace/<int:enlace_id>/eliminar')
 def admin_eliminar_enlace(enlace_id):
     user = get_current_user()
@@ -1293,7 +1334,7 @@ def juego_arena_guardar_score():
     puntos_ganados = puntos_base + bonus_reto
     
     conn = sqlite3.connect(DB_PATH)
-    conn.execute("UPDATE usuarios SET puntos_contribucion = puntos_contribucion + ? WHERE id = ?", (puntos_ganados, user['id']))
+    conn.execute("UPDATE usuarios SET puntos_contribucion = puntos_contribucion + ?, nivel_maximo = MAX(COALESCE(nivel_maximo, 1), ?) WHERE id = ?", (puntos_ganados, diff_level, user['id']))
     conn.commit()
     
     c = conn.cursor()

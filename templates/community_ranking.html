@@ -58,6 +58,7 @@
                             <th>Posición</th>
                             <th>Participante</th>
                             <th>Rol</th>
+                            <th>Nivel Alcanzado</th>
                             <th class="text-end">Puntos de Aporte</th>
                         </tr>
                     </thead>
@@ -77,6 +78,7 @@
                                 </td>
                                 <td class="fw-bold">{{ m.nombre }}</td>
                                 <td><span class="badge bg-{{ 'warning text-dark' if m.rol == 'admin' else ('info' if m.rol == 'creador' else 'secondary') }}">{{ m.rol }}</span></td>
+                                <td class="fw-bold text-info">Nivel {{ m.nivel_maximo if m.nivel_maximo else 1 }}</td>
                                 <td class="text-end fw-bold text-primary fs-5">{{ m.puntos_contribucion }} pts</td>
                             </tr>
                         {% endfor %}

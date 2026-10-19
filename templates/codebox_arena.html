@@ -511,7 +511,12 @@
     let joyIn = { x: 0, y: 0 };
     let mobileFiring = false;
 
-    const socket = (typeof io !== 'undefined') ? io() : { on: () => {}, emit: () => {} };
+    let socket;
+    try {
+      socket = (typeof io !== 'undefined') ? io() : { on: () => {}, emit: () => {} };
+    } catch (e) {
+      socket = { on: () => {}, emit: () => {} };
+    }
     let is1v1Multiplayer = false;
     let multiplayerRoom = null;
 
@@ -600,10 +605,7 @@
       challengeAccepted = aceptado;
       const modal = document.getElementById('challengeStartModal');
       if (modal) {
-        modal.style.setProperty('display', 'none', 'important');
-        modal.style.visibility = 'hidden';
-        modal.style.opacity = '0';
-        modal.style.pointerEvents = 'none';
+        modal.remove();
       }
       isPaused = false;
       gameOver = false;
@@ -616,6 +618,7 @@
         spawnInsectEnemy();
       }
       updateHeroColor();
+      if (canvas) canvas.focus();
     }
     window.responderReto = responderReto;
 
@@ -836,7 +839,6 @@
       }
     }
 
-    let mobileFiring = false;
     const fb1 = document.getElementById('fb1');
     fb1.addEventListener('touchstart', e => { e.preventDefault(); mobileFiring = true; }, { passive: false });
     fb1.addEventListener('touchend', e => { e.preventDefault(); mobileFiring = false; }, { passive: false });

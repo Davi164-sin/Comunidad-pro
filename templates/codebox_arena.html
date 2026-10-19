@@ -511,7 +511,7 @@
     let joyIn = { x: 0, y: 0 };
     let mobileFiring = false;
 
-    const socket = io();
+    const socket = (typeof io !== 'undefined') ? io() : { on: () => {}, emit: () => {} };
     let is1v1Multiplayer = false;
     let multiplayerRoom = null;
 
@@ -531,7 +531,7 @@
 
     socket.on('start_1v1_match', (data) => {
       multiplayerRoom = data.room;
-      document.getElementById('matchmakingStatus').innerHTML = `<span class="text-success">¡Oponente encontrado! Partida 1v1 contra <strong>${data.player1 === "{{ usuario.nombre }}" ? data.player2 : data.player1}</strong> iniciada.</span>`;
+      document.getElementById('matchmakingStatus').innerHTML = `<span class="text-success">¡Oponente encontrado! Partida 1v1 iniciada.</span>`;
       setTimeout(() => {
         responderReto(true);
       }, 1500);
@@ -603,8 +603,9 @@
         modal.style.display = 'none';
         modal.style.visibility = 'hidden';
         modal.style.opacity = '0';
-        modal.remove(); // Eliminar modal del DOM para asegurar que no bloquee clics ni toques en el canvas
+        modal.style.pointerEvents = 'none';
       }
+      isPaused = false;
       gameOver = false;
       player.hp = 100;
       player.kills = 0;
@@ -614,9 +615,9 @@
       for (let i = 0; i < 5; i++) {
         spawnInsectEnemy();
       }
-      isPaused = false;
-      if (canvas) canvas.focus();
+      updateHeroColor();
     }
+    window.responderReto = responderReto;
 
     const startBtn = document.getElementById('startBtn');
     if (startBtn) {

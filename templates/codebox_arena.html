@@ -176,7 +176,7 @@
   </div>
 
   <!-- Modal Inicio de Reto / Dashboard de Configuración -->
-  <div id="challengeStartModal" style="display: flex;">
+  <div id="challengeStartModal" style="display: flex; z-index: 9999;">
     <div class="modal-card" style="border: 2px solid #00e676; box-shadow: 0 0 40px rgba(0,230,118,0.4); max-width: 520px; text-align: left;">
       <h3 class="text-success fw-bold mb-2 text-center"><i class="fas fa-gamepad me-2"></i>ZONA ARCADE: CONFIGURACIÓN</h3>
       <p class="text-muted text-center mb-3 small">Personaliza tu partida, compra poderes y elige tu modo de juego antes de empezar.</p>
@@ -600,7 +600,7 @@
       challengeAccepted = aceptado;
       const modal = document.getElementById('challengeStartModal');
       if (modal) {
-        modal.style.display = 'none';
+        modal.style.setProperty('display', 'none', 'important');
         modal.style.visibility = 'hidden';
         modal.style.opacity = '0';
         modal.style.pointerEvents = 'none';

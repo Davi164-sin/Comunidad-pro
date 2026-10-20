@@ -1,6 +1,7 @@
 Flask
 Flask-SocketIO
 eventlet
+gevent
 simple-websocket
 werkzeug
 google-generativeai

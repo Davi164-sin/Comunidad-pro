@@ -135,12 +135,7 @@ def init_db():
     except sqlite3.OperationalError:
         pass
 
-    # Recuperar puntos y nivel para todos los usuarios existentes
-    try:
-        c.execute("UPDATE usuarios SET puntos_contribucion = MAX(puntos_contribucion, 50000), nivel_maximo = MAX(COALESCE(nivel_maximo, 1), 10)")
-        conn.commit()
-    except Exception:
-        pass
+    # (Puntos inalterados, sin forzar 50000 por defecto)
 
     # Tabla de niveles personalizados gestionados por el administrador
     c.execute('''
@@ -411,21 +406,15 @@ def init_db():
     if not c.fetchone():
         hashed_pw = generate_password_hash("admin123")
         c.execute("INSERT INTO usuarios (nombre, email, password, rol, puntos_contribucion) VALUES (?, ?, ?, ?, ?)",
-                  ("Administrador Principal", "admin@comunidad.com", hashed_pw, "admin", 50000))
-        conn.commit()
-    else:
-        c.execute("UPDATE usuarios SET puntos_contribucion = MAX(puntos_contribucion, 50000) WHERE email = 'admin@comunidad.com'")
+                  ("Administrador Principal", "admin@comunidad.com", hashed_pw, "admin", 0))
         conn.commit()
 
-    # Crear usuario David por defecto si no existe y asegurar puntos de recuperación
+    # Crear usuario David por defecto si no existe con 0 puntos
     c.execute("SELECT id FROM usuarios WHERE email = 'david@comunidad.com'")
     if not c.fetchone():
         hashed_pw = generate_password_hash("david123")
         c.execute("INSERT INTO usuarios (nombre, email, password, rol, puntos_contribucion) VALUES (?, ?, ?, ?, ?)",
-                  ("David", "david@comunidad.com", hashed_pw, "miembro", 50000))
-        conn.commit()
-    else:
-        c.execute("UPDATE usuarios SET puntos_contribucion = MAX(puntos_contribucion, 50000) WHERE email = 'david@comunidad.com'")
+                  ("David", "david@comunidad.com", hashed_pw, "miembro", 0))
         conn.commit()
         
     # Insertar enlaces de ejemplo si está vacío

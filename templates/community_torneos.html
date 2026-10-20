@@ -36,7 +36,7 @@
                 <div class="col-lg-8">
                     <span class="badge bg-success mb-2 px-3 py-2"><i class="fas fa-bolt me-1"></i> TORNEO SEMANAL ACTIVO</span>
                     <h1 class="fw-bold text-white mb-2">{{ torneo_activo.titulo }}</h1>
-                    <p class="text-muted mb-3">{{ torneo_activo.descripcion }}</p>
+                    <p class="text-light opacity-75 mb-3">{{ torneo_activo.descripcion }}</p>
                     <div class="d-flex flex-wrap gap-3">
                         <span class="text-info"><i class="fas fa-calendar-alt me-1"></i> Inicio: {{ torneo_activo.inicio }}</span>
                         <span class="text-warning"><i class="fas fa-hourglass-end me-1"></i> Finaliza: {{ torneo_activo.fin }}</span>
@@ -44,7 +44,7 @@
                 </div>
                 <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
                     <div class="countdown-box">
-                        <div class="small text-muted text-uppercase fw-bold">Tiempo Restante</div>
+                        <div class="small text-light text-uppercase fw-bold">Tiempo Restante</div>
                         <div id="countdownTimer" class="fs-4 fw-bold text-success font-monospace">Calculando...</div>
                         <a href="{{ url_for('juego_arena') }}" class="btn btn-success fw-bold w-100 mt-2 shadow"><i class="fas fa-play me-1"></i>¡JUGAR AHORA!</a>
                     </div>
@@ -57,14 +57,14 @@
             <div class="col-lg-6">
                 <div class="card card-custom p-4 h-100">
                     <h3 class="fw-bold text-warning mb-3"><i class="fas fa-gift me-2"></i>Premios en Dinero Real</h3>
-                    <p class="text-muted small mb-3">Premios financiados por patrocinadores oficiales y validados por administración.</p>
+                    <p class="text-light opacity-75 small mb-3">Premios financiados por patrocinadores oficiales y validados por administración.</p>
                     <div class="list-group list-group-flush bg-transparent">
                         {% for p in premios %}
                         <div class="list-group-item bg-transparent text-white border-secondary d-flex justify-content-between align-items-center py-3">
                             <div>
                                 <span class="badge bg-secondary me-2">Puesto #{{ p.puesto }}</span>
                                 <strong class="text-success">${{ '{:,.0f}'.format(p.monto_premio) }} COP</strong>
-                                <div class="small text-muted">{{ p.descripcion_premio }}</div>
+                                <div class="small text-light opacity-75">{{ p.descripcion_premio }}</div>
                             </div>
                             <div class="text-end">
                                 {% if p.patrocinador %}
@@ -80,7 +80,7 @@
                             </div>
                         </div>
                         {% else %}
-                        <p class="text-muted">No hay premios configurados aún para este torneo.</p>
+                        <p class="text-light">No hay premios configurados aún para este torneo.</p>
                         {% endfor %}
                     </div>
                 </div>
@@ -89,12 +89,12 @@
             <div class="col-lg-6">
                 <div class="card card-custom p-4 h-100">
                     <h3 class="fw-bold text-info mb-3"><i class="fas fa-book-open me-2"></i>Reglas y Elegibilidad</h3>
-                    <div class="small text-muted mb-3" style="white-space: pre-line;">
+                    <div class="small text-light mb-3" style="white-space: pre-line; line-height: 1.6;">
                         {{ torneo_activo.reglas or '1. Participación 100% gratuita para usuarios registrados.\n2. La puntuación se obtiene compitiendo en CodeBox Arena.\n3. Se prohíbe el uso de trampas, scripts o múltiples cuentas para falsear puntuaciones.\n4. Los pagos de premios requieren verificación de identidad y cumplimiento fiscal en Colombia.' }}
                     </div>
                     <hr class="border-secondary">
                     <h6 class="text-success fw-bold"><i class="fas fa-shield-alt me-1"></i> Juego Limpio Garantizado</h6>
-                    <p class="text-muted small mb-0">El servidor valida cada puntuación enviada y las cuentas sospechosas son auditadas por el equipo de administración antes de entregar cualquier premio.</p>
+                    <p class="text-light small mb-0" style="line-height: 1.5;">El servidor valida cada puntuación enviada y las cuentas sospechosas son auditadas por el equipo de administración antes de entregar cualquier premio.</p>
                 </div>
             </div>
         </div>
@@ -192,7 +192,7 @@
     {% if torneo_activo %}
     <script>
         // Temporizador de cuenta regresiva
-        const fechaFin = new Date("{{ torneo_activo.fin }}").getTime();
+        const fechaFin = new Date("{{ torneo_activo.fin }}".replace(' ', 'T') + 'Z').getTime();
         const timerElem = document.getElementById('countdownTimer');
         
         function actualizarReloj() {

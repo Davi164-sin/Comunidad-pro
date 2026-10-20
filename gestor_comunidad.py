@@ -119,6 +119,7 @@ def init_db():
             estado TEXT DEFAULT 'activo', -- 'activo', 'suspendido'
             puntos_contribucion INTEGER DEFAULT 0,
             nivel_maximo INTEGER DEFAULT 1,
+            xp INTEGER DEFAULT 0,
             creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -131,6 +132,12 @@ def init_db():
 
     try:
         c.execute("ALTER TABLE usuarios ADD COLUMN nivel_maximo INTEGER DEFAULT 1")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        c.execute("ALTER TABLE usuarios ADD COLUMN xp INTEGER DEFAULT 0")
         conn.commit()
     except sqlite3.OperationalError:
         pass
@@ -386,7 +393,7 @@ def init_db():
     c.execute("SELECT COUNT(*) FROM torneos")
     if c.fetchone()[0] == 0:
         from datetime import datetime, timedelta
-        ahora = datetime.now()
+        ahora = datetime.utcnow()
         inicio_str = ahora.strftime('%Y-%m-%d %H:%M:%S')
         fin_str = (ahora + timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S')
         c.execute("INSERT INTO torneos (titulo, descripcion, inicio, fin, estado, reglas) VALUES (?, ?, ?, ?, 'activo', ?)",
@@ -521,7 +528,12 @@ def index():
     creadores_destacados = c.fetchall()
     c.execute("SELECT COUNT(*) FROM usuarios")
     total_miembros = c.fetchone()[0]
-    c.execute("SELECT id, nombre, puntos_contribucion FROM usuarios ORDER BY puntos_contribucion DESC LIMIT 5")
+    c.execute("""
+        SELECT id, nombre, 
+               (puntos_contribucion + COALESCE((SELECT MAX(puntuacion_maxima) FROM puntuaciones_torneo WHERE usuario_id = usuarios.id), 0)) AS puntos_contribucion 
+        FROM usuarios 
+        ORDER BY puntos_contribucion DESC LIMIT 5
+    """)
     ranking = c.fetchall()
     
     # Encuesta activa
@@ -540,7 +552,12 @@ def ranking_comunidad():
     conn = get_db_connection()
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    c.execute("SELECT * FROM usuarios ORDER BY puntos_contribucion DESC")
+    c.execute("""
+        SELECT *, 
+               (puntos_contribucion + COALESCE((SELECT MAX(puntuacion_maxima) FROM puntuaciones_torneo WHERE usuario_id = usuarios.id), 0)) AS puntos_contribucion 
+        FROM usuarios 
+        ORDER BY puntos_contribucion DESC
+    """)
     miembros = c.fetchall()
     conn.close()
     return render_template('community_ranking.html', usuario=get_current_user(), miembros=miembros)
@@ -1431,6 +1448,17 @@ def juego_arena():
     conn.close()
     return render_template('codebox_arena.html', usuario=user, top_jugadores=top_jugadores)
 
+@app.route('/juego-arena-3d')
+def juego_arena_3d():
+    user = get_current_user()
+    conn = get_db_connection()
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute("SELECT id, nombre, puntos_contribucion FROM usuarios ORDER BY puntos_contribucion DESC LIMIT 10")
+    top_jugadores = c.fetchall()
+    conn.close()
+    return render_template('codebox_arena_3d.html', usuario=user, top_jugadores=top_jugadores)
+
 @app.route('/juego-arena/guardar_score', methods=['POST'])
 def juego_arena_guardar_score():
     user = get_current_user()
@@ -1439,27 +1467,46 @@ def juego_arena_guardar_score():
     
     data = request.json
     kills = int(data.get('kills', 0))
-    diff_level = int(data.get('diffLevel', min(1000, int(kills * 1.5) + 1)))
+    # Desacoplar muertes de nivel: puntos según acciones válidas
+    puntos_base = kills * 10
     challenge_accepted = bool(data.get('challengeAccepted', False))
     
-    puntos_base = kills * 2
     bonus_reto = 0
     mensaje_reto = ""
     
     if challenge_accepted:
-        if diff_level >= 1000:
+        if kills >= 200:
             bonus_reto = 10000
-            mensaje_reto = "🏆 ¡IMPRESIONANTE! ¡Aceptaste el reto y alcanzaste el Nivel 1000, ganando 10,000 puntos de bono!"
-        elif diff_level >= 785:
+            mensaje_reto = "🏆 ¡IMPRESIONANTE! ¡Aceptaste el reto y alcanzaste el objetivo superior, ganando 10,000 puntos de bono!"
+        elif kills >= 100:
             bonus_reto = 2500
-            mensaje_reto = "⭐ ¡EXCELENTE! ¡Aceptaste el reto y llegaste al Nivel 785+, ganando 2,500 puntos de bono!"
+            mensaje_reto = "⭐ ¡EXCELENTE! ¡Aceptaste el reto y alcanzaste 100+ bajas, ganando 2,500 puntos de bono!"
         else:
-            mensaje_reto = f"🛡️ Participaste en el reto CodeBox (Nivel {diff_level}). ¡Sigue practicando para alcanzar la meta!"
+            mensaje_reto = f"🛡️ Participaste en el reto CodeBox ({kills} bajas). ¡Sigue practicando para alcanzar la meta!"
     
     puntos_ganados = puntos_base + bonus_reto
     
+    # Calcular XP y Nivel con curva progresiva (requiere más experiencia para niveles altos)
+    import math
+    xp_ganada = (kills * 25) + puntos_ganados
+    
     conn = get_db_connection()
-    conn.execute("UPDATE usuarios SET puntos_contribucion = puntos_contribucion + ?, nivel_maximo = MAX(COALESCE(nivel_maximo, 1), ?) WHERE id = ?", (puntos_ganados, diff_level, user['id']))
+    c = conn.cursor()
+    c.execute("SELECT xp FROM usuarios WHERE id = ?", (user['id'],))
+    row_user = c.fetchone()
+    current_xp = row_user['xp'] if row_user and 'xp' in row_user and row_user['xp'] is not None else 0
+    
+    nuevo_xp = current_xp + xp_ganada
+    # Curva de progresión: Nivel = sqrt(XP / 50) + 1 (Nivel 1000 requiere ~50M XP)
+    nuevo_nivel = max(1, int(math.sqrt(nuevo_xp / 50)) + 1)
+    
+    conn.execute("""
+        UPDATE usuarios 
+        SET puntos_contribucion = puntos_contribucion + ?, 
+            xp = ?, 
+            nivel_maximo = MAX(COALESCE(nivel_maximo, 1), ?) 
+        WHERE id = ?
+    """, (puntos_ganados, nuevo_xp, nuevo_nivel, user['id']))
     conn.commit()
 
     # Registrar puntuación en el torneo semanal activo si existe
@@ -1483,12 +1530,13 @@ def juego_arena_guardar_score():
     except Exception as ex:
         print(f"Nota en torneo score: {ex}")
     
-    c = conn.cursor()
-    c.execute("SELECT puntos_contribucion FROM usuarios WHERE id = ?", (user['id'],))
-    nuevo_total = c.fetchone()[0]
+    c.execute("SELECT puntos_contribucion, nivel_maximo, xp FROM usuarios WHERE id = ?", (user['id'],))
+    res_updated = c.fetchone()
+    nuevo_total = res_updated['puntos_contribucion']
+    nivel_actual = res_updated['nivel_maximo']
     conn.close()
     
-    notif_msg = f"¡Partida terminada! Has conseguido {kills} bajas (Nivel {diff_level}) y ganado {puntos_ganados} puntos de contribución para la competencia."
+    notif_msg = f"¡Partida terminada! Bajas: {kills} | Puntos: {puntos_ganados} | XP: +{xp_ganada} | Nivel Actual: {nivel_actual}."
     if mensaje_reto:
         notif_msg += f" {mensaje_reto}"
     
@@ -1496,7 +1544,7 @@ def juego_arena_guardar_score():
     return jsonify({
         "status": "success", 
         "kills": kills, 
-        "diffLevel": diff_level,
+        "diffLevel": nivel_actual,
         "challengeAccepted": challenge_accepted,
         "puntos_ganados": puntos_ganados, 
         "mensaje_reto": mensaje_reto,
@@ -1580,7 +1628,13 @@ def torneos_publicos():
         c.execute("SELECT * FROM premios_torneo WHERE torneo_id = ? ORDER BY puesto ASC", (torneo_activo['id'],))
         premios = c.fetchall()
         
-        c.execute("SELECT * FROM puntuaciones_torneo WHERE torneo_id = ? ORDER BY puntuacion_maxima DESC LIMIT 20", (torneo_activo['id'],))
+        c.execute("""
+            SELECT pt.* FROM puntuaciones_torneo pt
+            JOIN usuarios u ON pt.usuario_id = u.id
+            WHERE pt.torneo_id = ? AND u.rol != 'admin'
+            ORDER BY pt.puntuacion_maxima DESC, pt.bajas_maximas DESC, pt.actualizado_en ASC
+            LIMIT 20
+        """, (torneo_activo['id'],))
         leaderboard = c.fetchall()
         
     c.execute('''

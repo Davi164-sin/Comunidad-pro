@@ -69,7 +69,10 @@
                     <span class="badge bg-danger mb-2 px-3 py-1 fw-bold"><i class="fas fa-fire me-1"></i> NUEVO &bull; COMPETENCIA GLOBAL</span>
                     <h2 class="fw-bold text-success mb-2"><i class="fas fa-crosshairs me-2"></i>CodeBox Game Arena</h2>
                     <p class="text-light mb-3">Entra a la arena táctica de supervivencia. Destruye enemigos con gráficos neón, joystick táctil y compite contra otros usuarios acumulando bajas para subir en el ranking de la plataforma.</p>
-                    <a href="{{ url_for('juego_arena') }}" class="btn btn-success btn-lg fw-bold px-4 shadow"><i class="fas fa-play me-2"></i> Jugar CodeBox Arena Ahora</a>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{{ url_for('juego_arena') }}" class="btn btn-success btn-lg fw-bold px-4 shadow"><i class="fas fa-play me-2"></i> Jugar Arena 2D</a>
+                        <a href="{{ url_for('juego_arena_3d') }}" class="btn btn-outline-warning btn-lg fw-bold px-4 shadow"><i class="fas fa-cube me-2"></i> Jugar Arena 3D (WebGL)</a>
+                    </div>
                 </div>
                 <div class="col-lg-4 text-center mt-3 mt-lg-0">
                     <div class="display-1 text-warning"><i class="fas fa-trophy"></i></div>

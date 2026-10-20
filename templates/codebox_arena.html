@@ -722,21 +722,23 @@
 
     window.addEventListener('keydown', e => {
       const k = e.key.toLowerCase();
-      if (k === 'w' || e.key === 'ArrowUp') keys.w = true;
-      if (k === 's' || e.key === 'ArrowDown') keys.s = true;
-      if (k === 'a' || e.key === 'ArrowLeft') keys.a = true;
-      if (k === 'd' || e.key === 'ArrowRight') keys.d = true;
-      if (e.key === ' ') keys.space = true;
-      if (k === 'p' || e.key === 'Escape') togglePause();
+      const code = e.code;
+      if (k === 'w' || k === 'arrowup' || code === 'KeyW' || code === 'ArrowUp') keys.w = true;
+      if (k === 's' || k === 'arrowdown' || code === 'KeyS' || code === 'ArrowDown') keys.s = true;
+      if (k === 'a' || k === 'arrowleft' || code === 'KeyA' || code === 'ArrowLeft') keys.a = true;
+      if (k === 'd' || k === 'arrowright' || code === 'KeyD' || code === 'ArrowRight') keys.d = true;
+      if (e.key === ' ' || k === 'space' || code === 'Space') keys.space = true;
+      if (k === 'p' || k === 'escape' || code === 'KeyP' || code === 'Escape') togglePause();
     });
 
     window.addEventListener('keyup', e => {
       const k = e.key.toLowerCase();
-      if (k === 'w' || e.key === 'ArrowUp') keys.w = false;
-      if (k === 's' || e.key === 'ArrowDown') keys.s = false;
-      if (k === 'a' || e.key === 'ArrowLeft') keys.a = false;
-      if (k === 'd' || e.key === 'ArrowRight') keys.d = false;
-      if (e.key === ' ') keys.space = false;
+      const code = e.code;
+      if (k === 'w' || k === 'arrowup' || code === 'KeyW' || code === 'ArrowUp') keys.w = false;
+      if (k === 's' || k === 'arrowdown' || code === 'KeyS' || code === 'ArrowDown') keys.s = false;
+      if (k === 'a' || k === 'arrowleft' || code === 'KeyA' || code === 'ArrowLeft') keys.a = false;
+      if (k === 'd' || k === 'arrowright' || code === 'KeyD' || code === 'ArrowRight') keys.d = false;
+      if (e.key === ' ' || k === 'space' || code === 'Space') keys.space = false;
     });
 
     window.addEventListener('mousemove', e => {

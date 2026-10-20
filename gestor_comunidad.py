@@ -324,7 +324,87 @@ def init_db():
         )
     ''')
 
+    # 🏆 Tablas de Torneos Semanales con Premios Reales
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS torneos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            titulo TEXT NOT NULL,
+            descripcion TEXT,
+            inicio TIMESTAMP NOT NULL,
+            fin TIMESTAMP NOT NULL,
+            estado TEXT DEFAULT 'activo',
+            reglas TEXT,
+            creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS premios_torneo (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            torneo_id INTEGER,
+            puesto INTEGER NOT NULL,
+            descripcion_premio TEXT NOT NULL,
+            monto_premio REAL DEFAULT 0.0,
+            patrocinador TEXT,
+            estado_financiacion TEXT DEFAULT 'pendiente',
+            estado_pago TEXT DEFAULT 'pendiente',
+            ganador_id INTEGER,
+            ganador_nombre TEXT,
+            FOREIGN KEY (torneo_id) REFERENCES torneos (id) ON DELETE CASCADE,
+            FOREIGN KEY (ganador_id) REFERENCES usuarios (id) ON DELETE SET NULL
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS puntuaciones_torneo (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            torneo_id INTEGER,
+            usuario_id INTEGER,
+            usuario_nombre TEXT,
+            puntuacion_maxima INTEGER DEFAULT 0,
+            bajas_maximas INTEGER DEFAULT 0,
+            actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(torneo_id, usuario_id),
+            FOREIGN KEY (torneo_id) REFERENCES torneos (id) ON DELETE CASCADE,
+            FOREIGN KEY (usuario_id) REFERENCES usuarios (id) ON DELETE CASCADE
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS historial_pagos_premios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            premio_id INTEGER,
+            ganador_id INTEGER,
+            monto REAL,
+            referencia_pago TEXT,
+            estado TEXT DEFAULT 'pendiente',
+            registrado_por TEXT,
+            creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (premio_id) REFERENCES premios_torneo (id) ON DELETE CASCADE,
+            FOREIGN KEY (ganador_id) REFERENCES usuarios (id) ON DELETE SET NULL
+        )
+    ''')
+
     conn.commit()
+
+    # Insertar torneo semanal de ejemplo si está vacío
+    c.execute("SELECT COUNT(*) FROM torneos")
+    if c.fetchone()[0] == 0:
+        from datetime import datetime, timedelta
+        ahora = datetime.now()
+        inicio_str = ahora.strftime('%Y-%m-%d %H:%M:%S')
+        fin_str = (ahora + timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S')
+        c.execute("INSERT INTO torneos (titulo, descripcion, inicio, fin, estado, reglas) VALUES (?, ?, ?, ?, 'activo', ?)",
+                  ("🏆 Torneo Semanal CodeBox Pro - S1", "Compite en CodeBox Arena durante esta semana y alcanza la puntuación más alta para ganar premios en dinero real.", inicio_str, fin_str, 
+                   "1. Participación 100% gratuita para usuarios registrados.\n2. La puntuación se obtiene compitiendo en CodeBox Arena.\n3. Se prohíbe el uso de trampas o scripts.\n4. Pagos verificados en Colombia."))
+        tid = c.lastrowid
+        premios_ej = [
+            (tid, 1, "Primer Puesto - Campeón Absoluto", 150000.0, "TechCol Patrocinador Oficial", "confirmado", "pendiente"),
+            (tid, 2, "Segundo Puesto - Subcampeón", 75000.0, "CodeBox Arena", "confirmado", "pendiente"),
+            (tid, 3, "Tercer Puesto - Podio", 35000.0, "ComunidadPro", "pendiente", "pendiente")
+        ]
+        c.executemany("INSERT INTO premios_torneo (torneo_id, puesto, descripcion_premio, monto_premio, patrocinador, estado_financiacion, estado_pago) VALUES (?, ?, ?, ?, ?, ?, ?)", premios_ej)
+        conn.commit()
     
     # Crear un administrador por defecto si no existe y asegurar puntos de recuperación
     c.execute("SELECT id FROM usuarios WHERE email = 'admin@comunidad.com'")
@@ -1392,6 +1472,27 @@ def juego_arena_guardar_score():
     conn = get_db_connection()
     conn.execute("UPDATE usuarios SET puntos_contribucion = puntos_contribucion + ?, nivel_maximo = MAX(COALESCE(nivel_maximo, 1), ?) WHERE id = ?", (puntos_ganados, diff_level, user['id']))
     conn.commit()
+
+    # Registrar puntuación en el torneo semanal activo si existe
+    try:
+        c_t = conn.cursor()
+        c_t.execute("SELECT id FROM torneos WHERE estado = 'activo' ORDER BY id DESC LIMIT 1")
+        torneo_activo = c_t.fetchone()
+        if torneo_activo:
+            torneo_id = torneo_activo['id']
+            c_t.execute("SELECT id, puntuacion_maxima FROM puntuaciones_torneo WHERE torneo_id = ? AND usuario_id = ?", (torneo_id, user['id']))
+            existente = c_t.fetchone()
+            if existente:
+                if puntos_ganados > existente['puntuacion_maxima']:
+                    c_t.execute("UPDATE puntuaciones_torneo SET puntuacion_maxima = ?, bajas_maximas = ?, usuario_nombre = ?, actualizado_en = CURRENT_TIMESTAMP WHERE id = ?",
+                              (puntos_ganados, kills, user['nombre'], existente['id']))
+                    conn.commit()
+            else:
+                c_t.execute("INSERT INTO puntuaciones_torneo (torneo_id, usuario_id, usuario_nombre, puntuacion_maxima, bajas_maximas) VALUES (?, ?, ?, ?, ?)",
+                          (torneo_id, user['id'], user['nombre'], puntos_ganados, kills))
+                conn.commit()
+    except Exception as ex:
+        print(f"Nota en torneo score: {ex}")
     
     c = conn.cursor()
     c.execute("SELECT puntos_contribucion FROM usuarios WHERE id = ?", (user['id'],))
@@ -1473,6 +1574,104 @@ def db_stats_command():
     print(f"--- Estadísticas ComunidadPro ---")
     print(f"Usuarios registrados: {users}")
     print(f"Archivos almacenados: {files}")
+
+# 🏆 Rutas de Torneos Semanales con Premios Reales
+@app.route('/torneos')
+def torneos_publicos():
+    user = get_current_user()
+    conn = get_db_connection()
+    c = conn.cursor()
+    
+    c.execute("SELECT * FROM torneos WHERE estado = 'activo' ORDER BY id DESC LIMIT 1")
+    torneo_activo = c.fetchone()
+    
+    premios = []
+    leaderboard = []
+    if torneo_activo:
+        c.execute("SELECT * FROM premios_torneo WHERE torneo_id = ? ORDER BY puesto ASC", (torneo_activo['id'],))
+        premios = c.fetchall()
+        
+        c.execute("SELECT * FROM puntuaciones_torneo WHERE torneo_id = ? ORDER BY puntuacion_maxima DESC LIMIT 20", (torneo_activo['id'],))
+        leaderboard = c.fetchall()
+        
+    c.execute('''
+        SELECT pt.puesto, pt.monto_premio, pt.estado_pago, pt.ganador_nombre, t.titulo as titulo_torneo
+        FROM premios_torneo pt
+        JOIN torneos t ON pt.torneo_id = t.id
+        WHERE t.estado = 'finalizado'
+        ORDER BY t.id DESC LIMIT 10
+    ''')
+    historial = c.fetchall()
+    
+    conn.close()
+    return render_template('community_torneos.html', usuario=user, torneo_activo=torneo_activo, premios=premios, leaderboard=leaderboard, historial=historial)
+
+@app.route('/admin/torneo/crear', methods=['POST'])
+def admin_crear_torneo():
+    user = get_current_user()
+    if not user or user['rol'] != 'admin':
+        flash("Acceso no autorizado.", "error")
+        return redirect(url_for('admin_panel'))
+    
+    titulo = request.form.get('titulo')
+    descripcion = request.form.get('descripcion')
+    inicio = request.form.get('inicio')
+    fin = request.form.get('fin')
+    reglas = request.form.get('reglas')
+    
+    conn = get_db_connection()
+    conn.execute("INSERT INTO torneos (titulo, descripcion, inicio, fin, estado, reglas) VALUES (?, ?, ?, ?, 'activo', ?)",
+                 (titulo, descripcion, inicio, fin, reglas))
+    conn.commit()
+    conn.close()
+    flash("Torneo semanal creado exitosamente.", "success")
+    return redirect(url_for('admin_panel'))
+
+@app.route('/admin/torneo/<int:tid>/premio/crear', methods=['POST'])
+def admin_crear_premio(tid):
+    user = get_current_user()
+    if not user or user['rol'] != 'admin':
+        flash("Acceso no autorizado.", "error")
+        return redirect(url_for('admin_panel'))
+    
+    puesto = int(request.form.get('puesto', 1))
+    descripcion = request.form.get('descripcion_premio', '')
+    monto = float(request.form.get('monto_premio', 0.0))
+    patrocinador = request.form.get('patrocinador', '')
+    estado_financiacion = request.form.get('estado_financiacion', 'pendiente')
+    
+    conn = get_db_connection()
+    conn.execute("INSERT INTO premios_torneo (torneo_id, puesto, descripcion_premio, monto_premio, patrocinador, estado_financiacion) VALUES (?, ?, ?, ?, ?, ?)",
+                 (tid, puesto, descripcion, monto, patrocinador, estado_financiacion))
+    conn.commit()
+    conn.close()
+    flash("Premio añadido al torneo correctamente.", "success")
+    return redirect(url_for('admin_panel'))
+
+@app.route('/admin/premio/<int:pid>/marcar_pagado', methods=['POST'])
+def admin_marcar_pagado(pid):
+    user = get_current_user()
+    if not user or user['rol'] != 'admin':
+        flash("Acceso no autorizado.", "error")
+        return redirect(url_for('admin_panel'))
+    
+    ganador_nombre = request.form.get('ganador_nombre', '')
+    referencia = request.form.get('referencia_pago', '')
+    
+    conn = get_db_connection()
+    conn.execute("UPDATE premios_torneo SET estado_pago = 'pagado', ganador_nombre = ? WHERE id = ?", (ganador_nombre, pid))
+    conn.commit()
+    
+    c = conn.cursor()
+    c.execute("SELECT torneo_id, monto_premio, ganador_id FROM premios_torneo WHERE id = ?", (pid,))
+    row = c.fetchone()
+    if row:
+        conn.execute("INSERT INTO historial_pagos_premios (premio_id, ganador_id, monto, referencia_pago, estado, registrado_por) VALUES (?, ?, ?, ?, 'completado', ?)",
+                     (pid, row['ganador_id'], row['monto_premio'], referencia, user['nombre']))
+        conn.commit()
+    conn.close()
+    flash("Pago de premio registrado y marcado como pagado con éxito.", "success")
+    return redirect(url_for('admin_panel'))
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))

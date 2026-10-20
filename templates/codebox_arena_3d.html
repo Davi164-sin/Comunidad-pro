@@ -159,8 +159,29 @@
                 scene.add(playerMesh);
 
                 // Event Listeners
-                window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
-                window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+                window.addEventListener('keydown', e => {
+                    const k = e.key.toLowerCase();
+                    const code = e.code;
+                    if (['w', 's', 'a', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k) || ['KeyW', 'KeyS', 'KeyA', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(code)) {
+                        e.preventDefault();
+                    }
+                    keys[k] = true;
+                    keys[code] = true;
+                    if (k === 'arrowup' || code === 'ArrowUp') keys['w'] = true;
+                    if (k === 'arrowdown' || code === 'ArrowDown') keys['s'] = true;
+                    if (k === 'arrowleft' || code === 'ArrowLeft') keys['a'] = true;
+                    if (k === 'arrowright' || code === 'ArrowRight') keys['d'] = true;
+                });
+                window.addEventListener('keyup', e => {
+                    const k = e.key.toLowerCase();
+                    const code = e.code;
+                    keys[k] = false;
+                    keys[code] = false;
+                    if (k === 'arrowup' || code === 'ArrowUp') keys['w'] = false;
+                    if (k === 'arrowdown' || code === 'ArrowDown') keys['s'] = false;
+                    if (k === 'arrowleft' || code === 'ArrowLeft') keys['a'] = false;
+                    if (k === 'arrowright' || code === 'ArrowRight') keys['d'] = false;
+                });
                 container.addEventListener('click', shootBullet);
 
                 animate();
@@ -206,11 +227,18 @@
                 requestAnimationFrame(animate);
 
                 // Player movement
-                let moveSpeed = 0.3;
-                if (keys['w'] || keys['arrowup']) playerMesh.position.z -= moveSpeed;
-                if (keys['s'] || keys['arrowdown']) playerMesh.position.z += moveSpeed;
-                if (keys['a'] || keys['arrowleft']) { playerMesh.position.x -= moveSpeed; playerMesh.rotation.y = Math.PI / 2; }
-                if (keys['d'] || keys['arrowright']) { playerMesh.position.x += moveSpeed; playerMesh.rotation.y = -Math.PI / 2; }
+                let moveSpeed = 0.35;
+                let dx = 0, dz = 0;
+                if (keys['w'] || keys['arrowup'] || keys['KeyW'] || keys['ArrowUp']) dz -= moveSpeed;
+                if (keys['s'] || keys['arrowdown'] || keys['KeyS'] || keys['ArrowDown']) dz += moveSpeed;
+                if (keys['a'] || keys['arrowleft'] || keys['KeyA'] || keys['ArrowLeft']) dx -= moveSpeed;
+                if (keys['d'] || keys['arrowright'] || keys['KeyD'] || keys['ArrowRight']) dx += moveSpeed;
+
+                if (dx !== 0 || dz !== 0) {
+                    playerMesh.position.x += dx;
+                    playerMesh.position.z += dz;
+                    playerMesh.rotation.y = Math.atan2(dx, dz);
+                }
 
                 // Boundaries
                 playerMesh.position.x = Math.max(-45, Math.min(45, playerMesh.position.x));

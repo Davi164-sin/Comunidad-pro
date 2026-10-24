@@ -20,7 +20,7 @@
         .joystick-base { width: 120px; height: 120px; background: rgba(255,255,255,0.08); border: 2px solid rgba(0,230,118,0.5); border-radius: 50%; position: relative; pointer-events: auto; touch-action: none; }
         .joystick-knob { width: 56px; height: 56px; background: rgba(0,230,118,0.75); border-radius: 50%; position: absolute; top: 30px; left: 30px; box-shadow: 0 0 12px #00e676; }
         .action-buttons { display: flex; gap: 10px; pointer-events: auto; align-items: flex-end; }
-        .touch-btn { width: 60px; height: 60px; border-span: 50%; border-radius: 50%; background: rgba(0,230,118,0.85); color: #040805; border: none; font-weight: bold; font-size: 1.1rem; box-shadow: 0 0 15px #00e676; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: pointer; }
+        .touch-btn { width: 60px; height: 60px; border-radius: 50%; background: rgba(0,230,118,0.85); color: #040805; border: none; font-weight: bold; font-size: 1.1rem; box-shadow: 0 0 15px #00e676; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: pointer; }
         .touch-btn:active { background: #00ff88; transform: scale(0.93); }
         .btn-jump { background: rgba(0, 180, 255, 0.85); box-shadow: 0 0 15px #00b4ff; color: #fff; }
     </style>
@@ -45,7 +45,7 @@
                             <div class="hud-badge"><i class="fas fa-skull me-1"></i>Bajas: <span id="hudKills">0</span></div>
                             <div class="hud-badge"><i class="fas fa-shield-alt me-1"></i>HP: <span id="hudHp">100</span>/<span id="hudMaxHp">100</span></div>
                             <div class="hud-badge"><i class="fas fa-coins me-1"></i>Monedas: <span id="hudCoins">0</span></div>
-                            <div class="hud-badge"><i class="fas fa-star me-1 text-warning"></i>Nivel: <span id="hudLevel">1</span> (<span id="hudXp">0</span>/<span id="hudNextXp">100</span> XP)</div>
+                            <div class="hud-badge"><i class="fas fa-star me-1 text-warning"></i>Nivel: <span id="hudLevel">1</span> (<span id="hudXp">0</span>/<span id="hudNextXp">120</span> XP)</div>
                         </div>
 
                         <!-- Mobile Controls Overlay -->
@@ -61,7 +61,7 @@
                         </div>
                     </div>
                     <div class="mt-3 text-center text-small text-muted">
-                        <i class="fas fa-info-circle me-1"></i> <strong>Controles PC:</strong> WASD / Flechas (Mover) | Shift (Correr) | Espacio (Saltar) | F (Dash) | Click o Clic Izquierdo (Disparar) | Movimiento de Ratón (Apuntar).
+                        <i class="fas fa-info-circle me-1"></i> <strong>Controles PC:</strong> WASD / Flechas (Mover) | Shift (Correr) | Espacio (Saltar) | F (Dash) | Click (Disparar) | Ratón (Apuntar).
                     </div>
                 </div>
             </div>
@@ -80,7 +80,7 @@
                         {% endfor %}
                     </div>
                     <hr class="border-secondary my-4">
-                    <button class="btn btn-success fw-bold w-100 shadow py-2" onclick="initGame()"><i class="fas fa-play me-1"></i>COMENZAR PARTIDA</button>
+                    <button class="btn btn-success fw-bold w-100 shadow py-2" onclick="initGame()"><i class="fas fa-play me-1"></i>REINICIAR PARTIDA</button>
                 </div>
             </div>
         </div>
@@ -123,12 +123,12 @@
         </div>
     </div>
 
-    <!-- Three.js CDN -->
+    <!-- Three.js CDN (r128) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         let scene, camera, renderer, playerGroup;
         let keys = {};
-        let enemies = [], bullets = [], coins = [], obstacles = [], particles = [];
+        let enemies = [], bullets = [], obstacles = [], particles = [];
         let kills = 0, hp = 100, maxHp = 100, coinsCount = 0, xp = 0, level = 1, attackPower = 1;
         let gameOver = false;
         let mouseX = 0, mouseY = 0, mouseFiring = false;
@@ -138,68 +138,98 @@
 
         // Touch Joystick state
         let touchJoyActive = false, touchJoyX = 0, touchJoyY = 0, touchJoyId = null;
+        let isInitialized = false;
 
         function initGame() {
             gameOver = false;
             kills = 0; hp = 100; maxHp = 100; coinsCount = 0; xp = 0; level = 1; attackPower = 1;
             playerVelY = 0; isJumping = false;
-            enemies = []; bullets = []; coins = []; obstacles = []; particles = [];
-            document.getElementById('gameOverModal').style.display = 'none';
+            
+            // Clean up existing scene elements if restarting
+            if (scene) {
+                while(scene.children.length > 0) { 
+                    scene.remove(scene.children[0]); 
+                }
+            }
+
+            enemies = []; bullets = []; obstacles = []; particles = [];
+            const modal = document.getElementById('gameOverModal');
+            if (modal) modal.style.display = 'none';
             updateHud();
 
-            if (!scene) {
-                scene = new THREE.Scene();
-                scene.background = new THREE.Color(0x040805);
-                scene.fog = new THREE.FogExp2(0x040805, 0.012);
+            // Setup Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x040805);
+            scene.fog = new THREE.FogExp2(0x040805, 0.012);
 
-                camera = new THREE.PerspectiveCamera(65, container.clientWidth / container.clientHeight, 0.1, 1000);
+            const width = container.clientWidth || window.innerWidth;
+            const height = container.clientHeight || 600;
 
+            camera = new THREE.PerspectiveCamera(65, width / height, 0.1, 1000);
+
+            if (!renderer) {
                 renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-                renderer.setSize(container.clientWidth, container.clientHeight);
-                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Low-end mobile optimization
+                renderer.setSize(width, height);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
                 renderer.shadowMap.enabled = true;
                 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
                 container.appendChild(renderer.domElement);
-
-                // Lighting
-                const ambientLight = new THREE.AmbientLight(0xffffff, 0.55);
-                scene.add(ambientLight);
-
-                const dirLight = new THREE.DirectionalLight(0x00ff88, 0.85);
-                dirLight.position.set(40, 70, 40);
-                dirLight.castShadow = true;
-                dirLight.shadow.mapSize.width = 1024;
-                dirLight.shadow.mapSize.height = 1024;
-                scene.add(dirLight);
-
-                // Floor grid arena (140x140)
-                const floorGeo = new THREE.PlaneGeometry(140, 140);
-                const floorMat = new THREE.MeshStandardMaterial({ color: 0x0a140d, roughness: 0.85, metalness: 0.1 });
-                const floor = new THREE.Mesh(floorGeo, floorMat);
-                floor.rotation.x = -Math.PI / 2;
-                floor.receiveShadow = true;
-                scene.add(floor);
-
-                const grid = new THREE.GridHelper(140, 60, 0x00e676, 0x0e2415);
-                grid.position.y = 0.02;
-                scene.add(grid);
-
-                buildEnvironment();
-                createPlayerModel();
-                setupListeners();
-
-                window.addEventListener('resize', () => {
-                    if (!container || !renderer || !camera) return;
-                    camera.aspect = container.clientWidth / container.clientHeight;
-                    camera.updateProjectionMatrix();
-                    renderer.setSize(container.clientWidth, container.clientHeight);
-                });
-
-                animate();
             } else {
-                if (playerGroup) playerGroup.position.set(0, 0, 0);
+                renderer.setSize(width, height);
             }
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0x00ff88, 0.9);
+            dirLight.position.set(40, 70, 40);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 1024;
+            dirLight.shadow.mapSize.height = 1024;
+            scene.add(dirLight);
+
+            // Floor grid arena (140x140)
+            const floorGeo = new THREE.PlaneGeometry(140, 140);
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x0a140d, roughness: 0.85, metalness: 0.1 });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            const grid = new THREE.GridHelper(140, 60, 0x00e676, 0x0e2415);
+            grid.position.y = 0.02;
+            scene.add(grid);
+
+            buildEnvironment();
+            createPlayerModel();
+
+            if (!isInitialized) {
+                setupListeners();
+                isInitialized = true;
+            }
+
+            // Spawn initial enemies immediately so screen is never empty
+            for(let i = 0; i < 5; i++) {
+                spawnEnemy();
+            }
+
+            window.addEventListener('resize', () => {
+                if (!container || !renderer || !camera) return;
+                const w = container.clientWidth || window.innerWidth;
+                const h = container.clientHeight || 600;
+                camera.aspect = w / h;
+                camera.updateProjectionMatrix();
+                renderer.setSize(w, h);
+            });
+
+            animate();
         }
+
+        // Auto-initialize on DOM load so screen is never black/empty
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(initGame, 100);
+        });
 
         function updateHud() {
             document.getElementById('hudKills').textContent = kills;
@@ -234,7 +264,7 @@
                 obstacles.push({x: p.x, z: p.z, radius: Math.max(p.w, p.d) / 2 + 1.2});
             });
 
-            // Trees & Rocks
+            // Trees & Rocks (compatible with r128)
             for (let i = 0; i < 16; i++) {
                 const rx = (Math.random() - 0.5) * 110;
                 const rz = (Math.random() - 0.5) * 110;
@@ -426,30 +456,23 @@
         }
 
         function spawnEnemy() {
-            if (gameOver || !playerGroup) return;
+            if (gameOver || !playerGroup || !scene) return;
             const types = ['cucaracha', 'raton', 'hormiga', 'gusano'];
             const type = types[Math.floor(Math.random() * types.length)];
 
-            let color = 0x5c4033, hpVal = 2 + Math.floor(level * 0.8), speedVal = 0.07 + level * 0.008;
+            let hpVal = 2 + Math.floor(level * 0.8), speedVal = 0.07 + level * 0.008;
             const enemyGroup = new THREE.Group();
 
             if (type === 'cucaracha') {
-                // Segmented body with antennas
                 const bGeo = new THREE.BoxGeometry(1.5, 0.7, 2.2);
                 const mat = new THREE.MeshStandardMaterial({ color: 0x4a3525, roughness: 0.5 });
                 const body = new THREE.Mesh(bGeo, mat);
                 body.position.y = 0.5;
                 body.castShadow = true;
                 enemyGroup.add(body);
-
-                const antGeo = new THREE.CylinderGeometry(0.04, 0.04, 1, 4);
-                const antMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
-                const leftAnt = new THREE.Mesh(antGeo, antMat);
-                leftAnt.position.set(-0.3, 0.9, 1.2);
-                leftAnt.rotation.x = Math.PI / 4;
-                enemyGroup.add(leftAnt);
             } else if (type === 'raton') {
-                const bGeo = new THREE.CapsuleGeometry(0.7, 1.2, 4, 8);
+                // r128 compatible geometry instead of CapsuleGeometry
+                const bGeo = new THREE.CylinderGeometry(0.7, 0.7, 1.6, 8);
                 const mat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.6 });
                 const body = new THREE.Mesh(bGeo, mat);
                 body.position.y = 0.8;
@@ -467,7 +490,6 @@
                 abdomen.position.set(0, 0.8, -0.8);
                 enemyGroup.add(abdomen);
             } else {
-                // Gusano
                 const wGeo = new THREE.CylinderGeometry(0.6, 0.6, 2.4, 8);
                 const mat = new THREE.MeshStandardMaterial({ color: 0xdb2777, roughness: 0.5 });
                 const worm = new THREE.Mesh(wGeo, mat);
@@ -484,10 +506,10 @@
             enemies.push({ group: enemyGroup, type: type, speed: speedVal, hp: hpVal, maxHp: hpVal });
         }
 
-        setInterval(spawnEnemy, 1700);
+        setInterval(spawnEnemy, 2000);
 
         function shootBullet() {
-            if (gameOver || !playerGroup) return;
+            if (gameOver || !playerGroup || !scene) return;
             const bulletGeo = new THREE.SphereGeometry(0.32, 8, 8);
             const bulletMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
             const bullet = new THREE.Mesh(bulletGeo, bulletMat);
@@ -518,7 +540,7 @@
         }
 
         function animate() {
-            if (!gameOver) {
+            if (!gameOver && scene && renderer && camera) {
                 requestAnimationFrame(animate);
 
                 // Passive survival XP
@@ -650,7 +672,7 @@
                                 enemies.splice(i, 1);
                                 kills++;
                                 coinsCount++;
-                                xp += 30; // Independent XP reward per kill
+                                xp += 30;
                                 checkLevelUp();
                                 updateHud();
                                 break;
@@ -691,6 +713,11 @@
                 alert('Error al guardar puntuación.');
             });
         }
+
+        // Auto-initialize game on load to prevent black screen
+        window.addEventListener('load', () => {
+            setTimeout(initGame, 100);
+        });
     </script>
 </body>
 </html>

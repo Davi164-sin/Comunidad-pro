@@ -512,10 +512,13 @@
             const bulletMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
             const bullet = new THREE.Mesh(bulletGeo, bulletMat);
 
-            bullet.position.copy(playerGroup.position);
-            bullet.position.y = 1.8;
+            // Correct direction by adding Math.PI to player rotation so bullets shoot forward towards enemies
+            const dir = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), playerGroup.rotation.y + Math.PI);
+            
+            // Spawn bullet slightly in front of player character
+            bullet.position.copy(playerGroup.position).addScaledVector(dir, 1.2);
+            bullet.position.y = 1.6;
 
-            const dir = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), playerGroup.rotation.y);
             scene.add(bullet);
             bullets.push({ mesh: bullet, dir: dir, speed: 0.95, damage: attackPower });
 

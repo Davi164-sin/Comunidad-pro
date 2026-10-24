@@ -638,10 +638,11 @@
                 // Update Enemies AI & Collisions
                 for (let i = enemies.length - 1; i >= 0; i--) {
                     let en = enemies[i];
+                    if (!en || !en.group) continue;
                     en.group.lookAt(playerGroup.position);
                     en.group.translateZ(en.speed);
 
-                    if (en.group.position.distanceTo(playerGroup.position) < 1.7) {
+                    if (en.group.position.distanceTo(playerGroup.position) < 1.8) {
                         hp -= 0.45;
                         updateHud();
                         if (hp <= 0) {
@@ -654,13 +655,31 @@
                         }
                     }
 
+                    let enemyDead = false;
                     for (let j = bullets.length - 1; j >= 0; j--) {
                         let b = bullets[j];
-                        if (en.group.position.distanceTo(b.mesh.position) < 1.6) {
-                            createSparks(b.mesh.position, 0xff3d00, 5);
+                        // Use horizontal XZ plane distance to avoid Y-axis mismatch
+                        let distXZ = Math.hypot(en.group.position.x - b.mesh.position.x, en.group.position.z - b.mesh.position.z);
+                        if (distXZ < 2.2) {
+                            createSparks(b.mesh.position, 0xff3d00, 6);
                             scene.remove(b.mesh);
                             bullets.splice(j, 1);
                             en.hp -= b.damage;
+
+                            // Visual flash red on hit
+                            en.group.traverse(child => {
+                                if (child.material) {
+                                    if (child.userData.origColor === undefined) {
+                                        child.userData.origColor = child.material.color.getHex();
+                                    }
+                                    child.material.color.setHex(0xff0000);
+                                    setTimeout(() => {
+                                        if (child && child.material && child.userData.origColor !== undefined) {
+                                            child.material.color.setHex(child.userData.origColor);
+                                        }
+                                    }, 120);
+                                }
+                            });
 
                             if (en.hp <= 0) {
                                 scene.remove(en.group);
@@ -670,10 +689,12 @@
                                 xp += 30;
                                 checkLevelUp();
                                 updateHud();
+                                enemyDead = true;
                                 break;
                             }
                         }
                     }
+                    if (enemyDead) continue;
                 }
 
                 renderer.render(scene, camera);

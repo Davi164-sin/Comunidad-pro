@@ -66,4 +66,4 @@ Plataforma web moderna desarrollada en **Flask (Python)** para la gestión integ
 
 ## 🔑 Credenciales de Administrador por Defecto
 - **Correo:** `admin@comunidad.com`
-- **Contraseña:** `admin123`
+`

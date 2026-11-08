@@ -1446,7 +1446,7 @@ def juego_arena():
     c.execute("SELECT id, nombre, puntos_contribucion FROM usuarios ORDER BY puntos_contribucion DESC LIMIT 10")
     top_jugadores = c.fetchall()
     conn.close()
-    return render_template('codebox_arena.html', usuario=user, top_jugadores=top_jugadores)
+    return render_template('codebox_arena_3d.html', usuario=user, top_jugadores=top_jugadores)
 
 @app.route('/juego-arena-3d')
 def juego_arena_3d():

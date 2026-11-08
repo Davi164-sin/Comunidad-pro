@@ -543,7 +543,7 @@
       if (coinsCount >= cost) {
         coinsCount -= cost;
         if (item === 'shield') inventory.shield = true;
-        if (item === 'speed') inventory.speedBonus = 0.18;
+        if (item === 'speed') inventory.speedBonus = 0.25;
         if (item === 'dualGun') inventory.dualGun = true;
         if (item === 'plasmaRay') inventory.plasmaRay = true;
         alert(`¡Compra exitosa! Has adquirido ${item}.`);
@@ -608,7 +608,7 @@
       return texture;
     }
 
-    // Initialize 3D Engine with GLTF Models Loader & Professional Visuals
+    // Initialize 3D Engine with Optimized Mobile Performance & GLTF Loader
     function initGame3D() {
       scene = new THREE.Scene();
       setBgTheme(currentBgTheme);
@@ -621,7 +621,8 @@
 
       renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
       renderer.setSize(width, height);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      // Optimized pixel ratio for Android low-end devices to maintain stable 60 FPS
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       container.appendChild(renderer.domElement);
@@ -635,8 +636,8 @@
       const dirLight = new THREE.DirectionalLight(0x00ff88, 1.8);
       dirLight.position.set(60, 100, 60);
       dirLight.castShadow = true;
-      dirLight.shadow.mapSize.width = 2048;
-      dirLight.shadow.mapSize.height = 2048;
+      dirLight.shadow.mapSize.width = 1024; // Optimized for mobile performance
+      dirLight.shadow.mapSize.height = 1024;
       dirLight.shadow.camera.near = 0.5;
       dirLight.shadow.camera.far = 280;
       const d = 70;
@@ -759,10 +760,10 @@
         }
       });
 
-      // Rocks and Detailed Vegetation (Multi-layered trees and crystalline rocks)
-      for (let i = 0; i < 25; i++) {
-        const rx = (Math.random() - 0.5) * 145;
-        const rz = (Math.random() - 0.5) * 145;
+      // Rocks and Detailed Vegetation
+      for (let i = 0; i < 22; i++) {
+        const rx = (Math.random() - 0.5) * 140;
+        const rz = (Math.random() - 0.5) * 140;
         if (Math.hypot(rx, rz) < 22) continue;
 
         if (i % 2 === 0) {
@@ -770,8 +771,6 @@
           trunk.position.set(rx, 3.2, rz); trunk.castShadow = true; scene.add(trunk);
           const leaves1 = new THREE.Mesh(new THREE.ConeGeometry(5.5, 7.5, 10), leafMat);
           leaves1.position.set(rx, 8.5, rz); leaves1.castShadow = true; scene.add(leaves1);
-          const leaves2 = new THREE.Mesh(new THREE.ConeGeometry(4, 5.5, 10), leafMat);
-          leaves2.position.set(rx, 12, rz); leaves2.castShadow = true; scene.add(leaves2);
           obstacles.push({x: rx, z: rz, radius: 2.8});
         } else {
           const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(2.8 + Math.random() * 2.2, 1), rockMat);
@@ -898,7 +897,7 @@
 
     setInterval(spawnEnemy3D, 1800);
 
-    // Input Listeners
+    // Input Listeners with Optimized Touch & Mouse Responsiveness
     function setupInputListeners() {
       window.addEventListener('keydown', e => {
         const k = e.key.toLowerCase();
@@ -922,6 +921,7 @@
         mouseX = ((e.clientX - rect.left) / container.clientWidth) * 2 - 1;
         mouseY = -((e.clientY - rect.top) / container.clientHeight) * 2 + 1;
         if (playerGroup && !isPaused && !gameOver) {
+          // PC mouse aiming direction mapping
           playerGroup.rotation.y = Math.atan2(mouseX, mouseY);
         }
       });
@@ -930,7 +930,7 @@
       container.addEventListener('mouseup', e => { if (e.button === 0) mouseFiring = false; });
       container.addEventListener('click', () => { if (!isPaused && !gameOver) shootBullet(); });
 
-      // Touch Controls Setup
+      // Touch Controls Setup with Enhanced Responsiveness
       const jZone = document.getElementById('jz');
       const jKnob = document.getElementById('jk');
 
@@ -977,60 +977,91 @@
     let dashCooldown = 0;
     function triggerDash() {
       if (dashCooldown > 0 || !playerGroup) return;
-      dashCooldown = 80;
-      const dir = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), playerGroup.rotation.y);
-      playerGroup.position.addScaledVector(dir, 14);
+      dashCooldown = 70;
+      const dir = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), playerGroup.rotation.y);
+      playerGroup.position.addScaledVector(dir, 16);
       createSparkParticles(playerGroup.position, 0x00ff88, 16);
     }
 
     function triggerJump() {
       if (isJumping || !playerGroup) return;
-      playerVelY = 0.48;
+      playerVelY = 0.52;
       isJumping = true;
     }
 
-    // Advanced Green Energy Projectiles with Muzzle Flash, Trajectory and Impact Sparks
+    // Helper: Find nearest enemy in front for mobile smart auto-aim
+    function getNearestEnemyDirection() {
+      if (!enemies || enemies.length === 0 || !playerGroup) return null;
+      let nearest = null;
+      let minDist = Infinity;
+      for (let en of enemies) {
+        if (!en || !en.group) continue;
+        let dist = playerGroup.position.distanceTo(en.group.position);
+        if (dist < minDist) {
+          minDist = dist;
+          nearest = en;
+        }
+      }
+      if (nearest && minDist < 60) {
+        const targetPos = nearest.group.position;
+        const dx = targetPos.x - playerGroup.position.x;
+        const dz = targetPos.z - playerGroup.position.z;
+        return Math.atan2(dx, dz);
+      }
+      return null;
+    }
+
+    // Completely Corrected Shooting Direction (Forward from weapon, matching character orientation)
     function shootBullet() {
       if (gameOver || isPaused || !playerGroup || !scene) return;
 
-      const bulletGeo = new THREE.SphereGeometry(0.42, 10, 10);
+      // On mobile / touch, automatically orient towards nearest enemy if available
+      if (touchJoyActive || (navigator.maxTouchPoints > 0 && enemies.length > 0)) {
+        let aimAngle = getNearestEnemyDirection();
+        if (aimAngle !== null) {
+          playerGroup.rotation.y = aimAngle;
+        }
+      }
+
+      const bulletGeo = new THREE.SphereGeometry(0.42, 8, 8); // Optimized geometry for performance
       const bulletMat = new THREE.MeshBasicMaterial({ color: 0x00ff88 });
       const bullet = new THREE.Mesh(bulletGeo, bulletMat);
 
-      const dir = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), playerGroup.rotation.y);
-      bullet.position.copy(playerGroup.position).addScaledVector(dir, 1.8);
+      // Correct forward direction vector matching character orientation (Vector3(0, 0, 1))
+      const dir = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), playerGroup.rotation.y);
+      bullet.position.copy(playerGroup.position).addScaledVector(dir, 2.0);
       bullet.position.y = 1.8;
 
       scene.add(bullet);
       let dmg = inventory.plasmaRay ? attackPower * 3.2 : attackPower * 1.3;
-      bullets.push({ mesh: bullet, dir: dir, speed: 1.3, damage: dmg });
+      bullets.push({ mesh: bullet, dir: dir, speed: 1.6, damage: dmg });
 
       createSparkParticles(bullet.position, 0x00ff88, 8);
 
       if (inventory.dualGun) {
         const bullet2 = bullet.clone();
-        bullet2.position.add(new THREE.Vector3(0.4, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), playerGroup.rotation.y));
+        bullet2.position.add(new THREE.Vector3(0.5, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), playerGroup.rotation.y));
         scene.add(bullet2);
-        bullets.push({ mesh: bullet2, dir: dir, speed: 1.3, damage: dmg });
+        bullets.push({ mesh: bullet2, dir: dir, speed: 1.6, damage: dmg });
       }
     }
 
     function createSparkParticles(pos, colorHex, count) {
       for (let i = 0; i < count; i++) {
-        const pGeo = new THREE.BoxGeometry(0.22, 0.22, 0.22);
+        const pGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
         const pMat = new THREE.MeshBasicMaterial({ color: colorHex });
         const p = new THREE.Mesh(pGeo, pMat);
         p.position.copy(pos);
         scene.add(p);
         particles.push({
           mesh: p,
-          velocity: new THREE.Vector3((Math.random() - 0.5) * 0.6, Math.random() * 0.6, (Math.random() - 0.5) * 0.6),
-          life: 35
+          velocity: new THREE.Vector3((Math.random() - 0.5) * 0.7, Math.random() * 0.7, (Math.random() - 0.5) * 0.7),
+          life: 28
         });
       }
     }
 
-    // Main 3D Animation & Game Loop
+    // Main 3D Animation & Game Loop (Optimized for Android 60 FPS)
     function animate3D() {
       if (scene && renderer && camera) {
         requestAnimationFrame(animate3D);
@@ -1042,7 +1073,8 @@
             checkLevelProgress();
           }
 
-          let moveSpeed = (keys['shift'] || keys['ShiftLeft'] || keys['ShiftRight']) ? 0.58 : 0.4;
+          // Increased movement speed (+50% faster as requested)
+          let moveSpeed = (keys['shift'] || keys['ShiftLeft'] || keys['ShiftRight']) ? 0.95 : 0.65;
           moveSpeed += inventory.speedBonus;
           let dx = 0, dz = 0;
 
@@ -1074,12 +1106,12 @@
 
             playerGroup.rotation.y = Math.atan2(dx, dz);
 
-            const time = Date.now() * 0.02;
+            const time = Date.now() * 0.03;
             const leftLeg = playerGroup.getObjectByName('leftLeg');
             const rightLeg = playerGroup.getObjectByName('rightLeg');
             if (leftLeg && rightLeg) {
-              leftLeg.rotation.x = Math.sin(time) * 0.85;
-              rightLeg.rotation.x = -Math.sin(time) * 0.85;
+              leftLeg.rotation.x = Math.sin(time) * 0.95;
+              rightLeg.rotation.x = -Math.sin(time) * 0.95;
             }
           }
 
@@ -1093,7 +1125,7 @@
             }
           }
 
-          if (mouseFiring && Math.random() < 0.3) {
+          if (mouseFiring && Math.random() < 0.28) {
             shootBullet();
           }
 

@@ -546,6 +546,21 @@ def codebox():
     if not u["is_authenticated"]: flash("Inicia sesión.", "error"); return redirect(url_for('login'))
     return render_template('codebox.html', usuario=u)
 
+@app.route('/curso/personal')
+def curso_personal():
+    u = get_user()
+    return render_template('curso_personal.html', usuario=u)
+
+@app.route('/curso/tarjeta')
+def curso_tarjeta():
+    u = get_user()
+    return render_template('curso_tarjeta.html', usuario=u)
+
+@app.route('/curso/blog')
+def curso_blog():
+    u = get_user()
+    return render_template('curso_blog.html', usuario=u)
+
 @app.route('/ide')
 def ide():
     u = get_user()

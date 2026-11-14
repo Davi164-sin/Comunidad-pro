@@ -128,7 +128,7 @@ def main():
     print("\n" + "═"*45)
     print("  🤖 ASISTENTE DAVID - Modo Termux (Android)")
     print("═"*45)
-    print("\n  chat | cmd | aprender | memoria | salir\n")
+    print("\n  chat | cmd | asistente | aprender | memoria | salir\n")
     
     while True:
         try:
@@ -140,6 +140,14 @@ def main():
         if not cmd or cmd == "salir":
             print("👋 ¡Hasta luego!\n")
             break
+        
+        elif cmd == "asistente":
+            print("\n🤖 Iniciando Asistente Celular / Voz / Traductor...")
+            script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "asistente_celular.py")
+            if os.path.exists(script_path):
+                subprocess.run([sys.executable, script_path])
+            else:
+                print("❌ No se encontró el archivo asistente_celular.py\n")
         
         elif cmd == "cmd":
             print("\n⚡ Modo Comando Directo Bash (escribe 'x' para volver)")
@@ -189,7 +197,7 @@ def main():
                         if confirmar == 's':
                             out = ejecutar_comando_sistema(cmd_sugerido)
                             print(f"\n📂 Resultado del sistema:\n{out}\n")
-                    except Exception as err:
+                   except Exception as err:
                         print(f"No se pudo procesar el comando: {err}")
 
                 memoria["conversaciones"].append({

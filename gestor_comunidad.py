@@ -80,10 +80,13 @@ if DB_PATH == "/data/community_database.db" and os.path.exists(local_fallback_db
     except Exception as ex:
         print(f"Nota en sincronización de DB: {ex}")
 
-# Selección robusta y permanente de carpeta de subidas (Uploads) para evitar pérdida de datos
-UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
+# Configuración de almacenamiento persistente robusto
+if is_render or os.path.exists("/data"):
+    UPLOAD_FOLDER = os.path.join("/data", "uploads")
+else:
+    UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-print(f"✅ Directorio de almacenamiento persistente verificado en: {UPLOAD_FOLDER}")
+print(f"✅ Directorio de almacenamiento persistente configurado en: {UPLOAD_FOLDER}")
 
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):

@@ -80,13 +80,22 @@ if DB_PATH == "/data/community_database.db" and os.path.exists(local_fallback_db
     except Exception as ex:
         print(f"Nota en sincronización de DB: {ex}")
 
-# Configuración de almacenamiento persistente robusto
-if is_render or os.path.exists("/data"):
-    UPLOAD_FOLDER = os.path.join("/data", "uploads")
-else:
+# Configuración de almacenamiento persistente robusto con fallback automático
+try:
+    if is_render or os.path.exists("/data"):
+        UPLOAD_FOLDER = os.path.join("/data", "uploads")
+    else:
+        UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    test_up = os.path.join(UPLOAD_FOLDER, ".test")
+    with open(test_up, "w") as f:
+        f.write("test")
+    os.remove(test_up)
+    print(f"✅ Directorio de almacenamiento persistente verificado en: {UPLOAD_FOLDER}")
+except Exception as e:
+    print(f"⚠️ No se pudo usar el disco persistente para uploads ({e}). Usando static/uploads local.")
     UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-print(f"✅ Directorio de almacenamiento persistente configurado en: {UPLOAD_FOLDER}")
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):

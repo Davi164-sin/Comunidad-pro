@@ -31,7 +31,7 @@ def entrenar():
     print(f"Peso inicial aleatorio: {peso:.4f}\n")
     
     # Bucle de aprendizaje (Epochs / Épocas)
-    for epoca in range(1, 21):
+    for epoca in range(1, 101):
         error_total = 0
         
         for d in datos:
@@ -45,8 +45,8 @@ def entrenar():
             # 3. Ajuste de peso mediante Gradiente Descendente
             peso += tasa_aprendizaje * error * d["x"]
             
-        if epoca % 5 == 0 or epoca == 1:
-            print(f"Época {epoca:2d} | Error: {error_total:.4f} | Peso ajustado: {peso:.4f}")
+        if epoca % 20 == 0 or epoca == 1:
+            print(f"Época {epoca:3d} | Error: {error_total:.4f} | Peso ajustado: {peso:.4f}")
 
     print("\n✅ ENTRENAMIENTO COMPLETO")
     print(f"Peso final optimizado: {peso:.4f}\n")

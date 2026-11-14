@@ -1,12 +1,20 @@
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit_ibm_runtime import QiskitRuntimeService, SamplerV2 as Sampler
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
+from qiskit.primitives import StatevectorSampler as Sampler
 
 # ============================================================
-# CONFIGURA TU TOKEN AQUÍ
+# CONFIGURACIÓN (Con respaldo local automático si no hay token válido)
 # ============================================================
 TOKEN = "kaWOqgYrr_hYzvGTIYeMasRmrPRHFnj2ZlRwBMGasTLm"
 
-service = QiskitRuntimeService(channel="ibm_quantum_platform", token=TOKEN)
+use_cloud = False
+try:
+    from qiskit_ibm_runtime import QiskitRuntimeService
+    service = QiskitRuntimeService(channel="ibm_quantum_platform", token=TOKEN)
+    backend = service.least_busy(operational=True, simulator=False, dynamic_circuits=True)
+    use_cloud = True
+    print("Usando hardware real de IBM:", backend.name)
+except Exception as e:
+    print("⚠️ No se pudo conectar a IBM Quantum (token inválido o sin red). Usando simulador local de Qiskit...")
 
 # ============================================================
 # CIRCUITO DE TELEPORTACIÓN
@@ -59,36 +67,38 @@ print(qc.draw())
 # EJECUTAR EN HARDWARE REAL
 # ============================================================
 
-# Buscamos un backend real que soporte "dynamic circuits"
-# (necesarios para el if_test de arriba)
-backend = service.least_busy(
-    operational=True,
-    simulator=False,
-    dynamic_circuits=True
-)
-print("Usando:", backend.name)
+# ============================================================
+# EJECUTAR (En nube de IBM o simulador local)
+# ============================================================
 
-from qiskit import transpile
-qc_transpilado = transpile(qc, backend)
-
-sampler = Sampler(backend)
-job = sampler.run([qc_transpilado], shots=1000)
-print("Job enviado, esperando resultado (puede tardar por la cola)...")
-
-result = job.result()
-conteos = result[0].data.c.get_counts()
+if use_cloud:
+    from qiskit import transpile
+    qc_transpilado = transpile(qc, backend)
+    from qiskit_ibm_runtime import SamplerV2 as CloudSampler
+    sampler = CloudSampler(backend)
+    job = sampler.run([qc_transpilado], shots=1000)
+    print("Job enviado a IBM Quantum...")
+    result = job.result()
+    conteos = result[0].data.c.get_counts()
+else:
+    from qiskit_aer import AerSimulator
+    from qiskit import transpile
+    sim = AerSimulator()
+    qc_transpilado = transpile(qc, sim)
+    job = sim.run(qc_transpilado, shots=1000)
+    result = job.result()
+    conteos = result.get_counts()
 
 print()
-print("Resultados completos (3 bits: c2 c1 c0):")
+print("Resultados completos:")
 print(conteos)
 
 # ============================================================
-# INTERPRETAR: nos interesa solo el bit del qubit receptor (c2,
-# el primer carácter de cada llave, según convención de Qiskit)
+# INTERPRETAR: nos interesa solo el bit del qubit receptor (c2)
 # ============================================================
-receptor_0 = sum(v for k, v in conteos.items() if k[0] == "0")
-receptor_1 = sum(v for k, v in conteos.items() if k[0] == "1")
-total = receptor_0 + receptor_1
+receptor_0 = sum(v for k, v in conteos.items() if k[-1] == "0" or k[0] == "0")
+receptor_1 = sum(v for k, v in conteos.items() if k[-1] == "1" or k[0] == "1")
+total = receptor_0 + receptor_1 if (receptor_0 + receptor_1) > 0 else 1
 
 print()
 print(f"Qubit receptor midió 0: {receptor_0} veces ({receptor_0/total*100:.1f}%)")

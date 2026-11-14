@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeBox Arena 3D - ComunidadPro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #060d08; color: #e2e8f0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow-x: hidden; user-select: none; touch-action: none; }
+        .navbar { background: rgba(12, 24, 16, 0.95); border-bottom: 1px solid rgba(0, 230, 118, 0.2); backdrop-filter: blur(8px); }
+        .card-custom { background: #0c1810; border: 1.5px solid rgba(0, 230, 118, 0.3); border-radius: 16px; box-shadow: 0 0 25px rgba(0, 230, 118, 0.1); }
+        #canvas3d-container { width: 100%; height: 620px; border-radius: 16px; overflow: hidden; position: relative; border: 2px solid rgba(0, 230, 118, 0.4); box-shadow: 0 0 30px rgba(0, 230, 118, 0.2); background: #060d08; }
+        .hud-overlay { position: absolute; top: 15px; left: 15px; right: 15px; pointer-events: none; display: flex; justify-content: space-between; align-items: center; z-index: 10; font-family: monospace; flex-wrap: wrap; gap: 8px; }
+        .hud-badge { background: rgba(12, 24, 16, 0.85); border: 1px solid #00e676; padding: 6px 14px; border-radius: 8px; color: #00e676; font-weight: bold; font-size: 1rem; text-shadow: 0 0 5px rgba(0,230,118,0.5); }
+        .modal-custom { background: rgba(6, 13, 8, 0.95); border: 2px solid #00e676; border-radius: 16px; color: #fff; }
+        /* Mobile Touch Controls */
+        #touch-controls { position: absolute; bottom: 15px; left: 15px; right: 15px; display: flex; justify-content: space-between; pointer-events: none; z-index: 20; }
+        .joystick-base { width: 110px; height: 110px; background: rgba(255,255,255,0.1); border: 2px solid rgba(0,230,118,0.5); border-radius: 50%; position: relative; pointer-events: auto; touch-action: none; }
+        .joystick-knob { width: 50px; height: 50px; background: rgba(0,230,118,0.7); border-radius: 50%; position: absolute; top: 28px; left: 28px; box-shadow: 0 0 10px #00e676; }
+        .action-buttons { display: flex; gap: 12px; pointer-events: auto; align-items: flex-end; }
+        .touch-btn { width: 65px; height: 65px; border-radius: 50%; background: rgba(0,230,118,0.8); color: #060d08; border: none; font-weight: bold; font-size: 1.2rem; box-shadow: 0 0 15px #00e676; display: flex; align-items: center; justify-content: center; touch-action: none; }
+        .touch-btn:active { background: #00ff88; transform: scale(0.95); }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-success" href="{{ url_for('torneos_publicos') }}"><i class="fas fa-cube me-2"></i>CodeBox Arena 3D Pro</a>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('juego_arena') }}" class="btn btn-outline-success btn-sm"><i class="fas fa-gamepad me-1"></i>Modo 2D</a>
+                <a href="{{ url_for('torneos_publicos') }}" class="btn btn-outline-light btn-sm"><i class="fas fa-trophy me-1"></i>Torneos</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <div class="row g-4">
+            <div class="col-lg-9">
+                <div class="card card-custom p-3 position-relative">
+                    <div id="canvas3d-container">
+                        <div class="hud-overlay">
+                            <div class="hud-badge"><i class="fas fa-skull me-1"></i>Bajas: <span id="hudKills">0</span></div>
+                            <div class="hud-badge"><i class="fas fa-shield-alt me-1"></i>HP: <span id="hudHp">100</span>/<span id="hudMaxHp">100</span></div>
+                            <div class="hud-badge"><i class="fas fa-coins me-1"></i>Monedas: <span id="hudCoins">0</span></div>
+                            <div class="hud-badge"><i class="fas fa-star me-1 text-warning"></i>Nivel: <span id="hudLevel">1</span> (<span id="hudXp">0</span> XP)</div>
+                        </div>
+
+                        <!-- Mobile Controls Overlay -->
+                        <div id="touch-controls">
+                            <div id="joystickZone" class="joystick-base">
+                                <div id="joystickKnob" class="joystick-knob"></div>
+                            </div>
+                            <div class="action-buttons">
+                                <button id="dashBtn" class="touch-btn" title="Dash">⚡</button>
+                                <button id="fireBtn" class="touch-btn" title="Disparar"><i class="fas fa-fire"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-center text-small text-muted">
+                        <i class="fas fa-info-circle me-1"></i> <strong>Controles PC:</strong> WASD / Flechas para moverte | Ratón para apuntar | Clic o Espacio para disparar | F para Dash.
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-3">
+                <div class="card card-custom p-4 h-100">
+                    <h4 class="fw-bold text-success mb-3"><i class="fas fa-trophy me-2"></i>Ranking 3D</h4>
+                    <div class="list-group list-group-flush bg-transparent">
+                        {% for j in top_jugadores %}
+                        <div class="list-group-item bg-transparent text-white border-secondary d-flex justify-content-between align-items-center py-2">
+                            <span>{{ loop.index }}. {{ j.nombre }}</span>
+                            <span class="badge bg-success font-monospace">{{ j.puntos_contribucion }} pts</span>
+                        </div>
+                        {% else %}
+                        <p class="text-muted small">Sin puntuaciones registradas.</p>
+                        {% endfor %}
+                    </div>
+                    <hr class="border-secondary my-4">
+                    <button class="btn btn-success fw-bold w-100 shadow py-2" onclick="initGame()"><i class="fas fa-play me-1"></i>COMENZAR PARTIDA</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="gameOverModal" class="modal" tabindex="-1" style="display: none; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-custom p-4 text-center">
+                <h2 class="text-danger fw-bold mb-3"><i class="fas fa-skull-crossbones me-2"></i>¡PARTIDA TERMINADA!</h2>
+                <p class="text-muted mb-4">Has sobrevivido valientemente en CodeBox Arena 3D.</p>
+                <div class="row g-3 mb-4">
+                    <div class="col-3">
+                        <div class="p-2 bg-dark rounded border border-secondary">
+                            <div class="small text-muted" style="font-size: 0.75rem;">BAJAS</div>
+                            <div id="finalKills" class="fs-5 fw-bold text-success">0</div>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="p-2 bg-dark rounded border border-secondary">
+                            <div class="small text-muted" style="font-size: 0.75rem;">MONEDAS</div>
+                            <div id="finalCoins" class="fs-5 fw-bold text-warning">0</div>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="p-2 bg-dark rounded border border-secondary">
+                            <div class="small text-muted" style="font-size: 0.75rem;">NIVEL</div>
+                            <div id="finalLevel" class="fs-5 fw-bold text-primary">1</div>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="p-2 bg-dark rounded border border-secondary">
+                            <div class="small text-muted" style="font-size: 0.75rem;">PUNTOS</div>
+                            <div id="finalPoints" class="fs-5 fw-bold text-info">0</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-success fw-bold btn-lg w-100 shadow" onclick="enviarPuntuacion()"><i class="fas fa-save me-1"></i>GUARDAR PUNTUACIÓN Y XP</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer, playerGroup;
+        let keys = {};
+        let enemies = [], bullets = [], coins = [], obstacles = [], particles = [];
+        let kills = 0, hp = 100, maxHp = 100, coinsCount = 0, xp = 0, level = 1, attackPower = 1;
+        let gameOver = false;
+        let mouseX = 0, mouseY = 0, mouseFiring = false;
+        const container = document.getElementById('canvas3d-container');
+
+        // Touch Joystick state
+        let touchJoyActive = false, touchJoyX = 0, touchJoyY = 0, touchJoyId = null;
+
+        function initGame() {
+            gameOver = false;
+            kills = 0; hp = 100; maxHp = 100; coinsCount = 0; xp = 0; level = 1; attackPower = 1;
+            enemies = []; bullets = []; coins = []; obstacles = []; particles = [];
+            document.getElementById('gameOverModal').style.display = 'none';
+            updateHud();
+
+            if (!scene) {
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x060d08);
+                scene.fog = new THREE.FogExp2(0x060d08, 0.012);
+
+                camera = new THREE.PerspectiveCamera(65, container.clientWidth / container.clientHeight, 0.1, 1000);
+
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(container.clientWidth, container.clientHeight);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                container.appendChild(renderer.domElement);
+
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+                scene.add(ambientLight);
+
+                const dirLight = new THREE.DirectionalLight(0x00ff88, 0.9);
+                dirLight.position.set(30, 60, 30);
+                dirLight.castShadow = true;
+                dirLight.shadow.mapSize.width = 1024;
+                dirLight.shadow.mapSize.height = 1024;
+                scene.add(dirLight);
+
+                // Floor grid arena (120x120)
+                const floorGeo = new THREE.PlaneGeometry(120, 120);
+                const floorMat = new THREE.MeshStandardMaterial({ color: 0x0c1810, roughness: 0.85, metalness: 0.1 });
+                const floor = new THREE.Mesh(floorGeo, floorMat);
+                floor.rotation.x = -Math.PI / 2;
+                floor.receiveShadow = true;
+                scene.add(floor);
+
+                const grid = new THREE.GridHelper(120, 50, 0x00e676, 0x102516);
+                grid.position.y = 0.02;
+                scene.add(grid);
+
+                // Build Environment Props (Buildings, Trees, Rocks)
+                buildEnvironment();
+
+                // Build Detailed Player 3D Model
+                createPlayerModel();
+
+                // Event Listeners
+                setupListeners();
+
+                animate();
+            } else {
+                if (playerGroup) playerGroup.position.set(0, 0, 0);
+            }
+        }
+
+        function updateHud() {
+            document.getElementById('hudKills').textContent = kills;
+            document.getElementById('hudHp').textContent = Math.max(0, Math.floor(hp));
+            document.getElementById('hudMaxHp').textContent = maxHp;
+            document.getElementById('hudCoins').textContent = coinsCount;
+            document.getElementById('hudLevel').textContent = level;
+            document.getElementById('hudXp').textContent = xp;
+        }
+
+        function buildEnvironment() {
+            // Procedural Buildings, Trees and Rocks
+            const buildingMat = new THREE.MeshStandardMaterial({ color: 0x142b1b, roughness: 0.7 });
+            const treeLeafMat = new THREE.MeshStandardMaterial({ color: 0x00aa44, roughness: 0.9 });
+            const treeTrunkMat = new THREE.MeshStandardMaterial({ color: 0x5c4033 });
+            const rockMat = new THREE.MeshStandardMaterial({ color: 0x334433, roughness: 0.9 });
+
+            // Generate boundary walls / buildings
+            const positions = [
+                {x: -45, z: -45, w: 12, h: 18, d: 12}, {x: 45, z: -45, w: 14, h: 22, d: 14},
+                {x: -45, z: 45, w: 16, h: 15, d: 12}, {x: 45, z: 45, w: 12, h: 20, d: 16},
+                {x: 0, z: -50, w: 20, h: 10, d: 8}, {x: 0, z: 50, w: 18, h: 12, d: 8},
+                {x: -50, z: 0, w: 8, h: 14, d: 18}, {x: 50, z: 0, w: 8, h: 16, d: 20}
+            ];
+
+            positions.forEach(p => {
+                const bGeo = new THREE.BoxGeometry(p.w, p.h, p.d);
+                const bMesh = new THREE.Mesh(bGeo, buildingMat);
+                bMesh.position.set(p.x, p.h / 2, p.z);
+                bMesh.castShadow = true;
+                bMesh.receiveShadow = true;
+                scene.add(bMesh);
+                obstacles.push({x: p.x, z: p.z, radius: Math.max(p.w, p.d) / 2 + 1});
+            });
+
+            // Add Trees & Rocks
+            for (let i = 0; i < 14; i++) {
+                const rx = (Math.random() - 0.5) * 90;
+                const rz = (Math.random() - 0.5) * 90;
+                if (Math.hypot(rx, rz) < 15) continue; // Keep spawn clear
+
+                if (i % 2 === 0) {
+                    // Tree
+                    const trunkGeo = new THREE.CylinderGeometry(0.8, 1, 4, 8);
+                    const trunk = new THREE.Mesh(trunkGeo, treeTrunkMat);
+                    trunk.position.set(rx, 2, rz);
+                    trunk.castShadow = true;
+                    scene.add(trunk);
+
+                    const leavesGeo = new THREE.ConeGeometry(3.5, 6, 8);
+                    const leaves = new THREE.Mesh(leavesGeo, treeLeafMat);
+                    leaves.position.set(rx, 6.5, rz);
+                    leaves.castShadow = true;
+                    scene.add(leaves);
+                    obstacles.push({x: rx, z: rz, radius: 2});
+                } else {
+                    // Rock
+                    const rockGeo = new THREE.DodecahedronGeometry(1.8 + Math.random() * 1.5, 1);
+                    const rock = new THREE.Mesh(rockGeo, rockMat);
+                    rock.position.set(rx, 1, rz);
+                    rock.castShadow = true;
+                    scene.add(rock);
+                    obstacles.push({x: rx, z: rz, radius: 2});
+                }
+            }
+        }
+
+        function createPlayerModel() {
+            playerGroup = new THREE.Group();
+
+            // Torso
+            const torsoGeo = new THREE.BoxGeometry(1.2, 1.6, 0.7);
+            const torsoMat = new THREE.MeshStandardMaterial({ color: 0x00e676, roughness: 0.3 });
+            const torso = new THREE.Mesh(torsoGeo, torsoMat);
+            torso.position.y = 1.6;
+            torso.castShadow = true;
+            playerGroup.add(torso);
+
+            // Head & Visor
+            const headGeo = new THREE.SphereGeometry(0.6, 16, 16);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 });
+            const head = new THREE.Mesh(headGeo, headMat);
+            head.position.y = 2.7;
+            head.castShadow = true;
+            playerGroup.add(head);
+
+            const visorGeo = new THREE.BoxGeometry(0.5, 0.2, 0.5);
+            const visorMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+            const visor = new THREE.Mesh(visorGeo, visorMat);
+            visor.position.set(0, 2.7, 0.35);
+            playerGroup.add(visor);
+
+            // Blaster Gun
+            const gunGeo = new THREE.BoxGeometry(0.3, 0.3, 1.4);
+            const gunMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.8 });
+            const gun = new THREE.Mesh(gunGeo, gunMat);
+            gun.position.set(0.7, 1.5, 0.8);
+            gun.castShadow = true;
+            playerGroup.add(gun);
+
+            // Limbs (Legs)
+            const legGeo = new THREE.CylinderGeometry(0.25, 0.2, 1.2, 8);
+            const legMat = new THREE.MeshStandardMaterial({ color: 0x1b4d3e });
+            
+            const leftLeg = new THREE.Mesh(legGeo, legMat);
+            leftLeg.name = 'leftLeg';
+            leftLeg.position.set(-0.35, 0.6, 0);
+            playerGroup.add(leftLeg);
+
+            const rightLeg = new THREE.Mesh(legGeo, legMat);
+            rightLeg.name = 'rightLeg';
+            rightLeg.position.set(0.35, 0.6, 0);
+            playerGroup.add(rightLeg);
+
+            playerGroup.position.set(0, 0, 0);
+            scene.add(playerGroup);
+        }
+
+        function setupListeners() {
+            window.addEventListener('keydown', e => {
+                const k = e.key.toLowerCase();
+                const code = e.code;
+                if (['w', 's', 'a', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k) || ['KeyW', 'KeyS', 'KeyA', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(code)) {
+                    e.preventDefault();
+                }
+                keys[k] = true;
+                keys[code] = true;
+                if (k === 'arrowup' || code === 'ArrowUp') keys['w'] = true;
+                if (k === 'arrowdown' || code === 'ArrowDown') keys['s'] = true;
+                if (k === 'arrowleft' || code === 'ArrowLeft') keys['a'] = true;
+                if (k === 'arrowright' || code === 'ArrowRight') keys['d'] = true;
+                if (k === 'f' || code === 'KeyF') triggerDash();
+            });
+
+            window.addEventListener('keyup', e => {
+                const k = e.key.toLowerCase();
+                const code = e.code;
+                keys[k] = false;
+                keys[code] = false;
+                if (k === 'arrowup' || code === 'ArrowUp') keys['w'] = false;
+                if (k === 'arrowdown' || code === 'ArrowDown') keys['s'] = false;
+                if (k === 'arrowleft' || code === 'ArrowLeft') keys['a'] = false;
+                if (k === 'arrowright' || code === 'ArrowRight') keys['d'] = false;
+            });
+
+            container.addEventListener('mousemove', e => {
+                const rect = container.getBoundingClientRect();
+                mouseX = ((e.clientX - rect.left) / container.clientWidth) * 2 - 1;
+                mouseY = -((e.clientY - rect.top) / container.clientHeight) * 2 + 1;
+            });
+
+            container.addEventListener('mousedown', e => { if (e.button === 0) mouseFiring = true; });
+            container.addEventListener('mouseup', e => { if (e.button === 0) mouseFiring = false; });
+            container.addEventListener('click', () => shootBullet());
+
+            // Touch Joystick Setup
+            const jZone = document.getElementById('joystickZone');
+            const jKnob = document.getElementById('joystickKnob');
+
+            jZone.addEventListener('touchstart', e => {
+                e.preventDefault();
+                const t = e.changedTouches[0];
+                touchJoyId = t.identifier;
+                touchJoyActive = true;
+                updateJoystick(t);
+            }, { passive: false });
+
+            jZone.addEventListener('touchmove', e => {
+                e.preventDefault();
+                for (let t of e.changedTouches) {
+                    if (t.identifier === touchJoyId) updateJoystick(t);
+                }
+            }, { passive: false });
+
+            jZone.addEventListener('touchend', e => {
+                e.preventDefault();
+                touchJoyActive = false;
+                touchJoyX = 0; touchJoyY = 0;
+                jKnob.style.transform = `translate(0px, 0px)`;
+            }, { passive: false });
+
+            document.getElementById('fireBtn').addEventListener('touchstart', e => {
+                e.preventDefault();
+                shootBullet();
+            });
+
+            document.getElementById('dashBtn').addEventListener('touchstart', e => {
+                e.preventDefault();
+                triggerDash();
+            });
+        }
+
+        function updateJoystick(t) {
+            const rect = document.getElementById('joystickZone').getBoundingClientRect();
+            const cx = rect.left + 55, cy = rect.top + 55;
+            const dx = t.clientX - cx, dy = t.clientY - cy;
+            const dist = Math.hypot(dx, dy);
+            const maxR = 40;
+            const angle = Math.atan2(dy, dx);
+            const clampedD = Math.min(dist, maxR);
+
+            touchJoyX = (Math.cos(angle) * clampedD) / maxR;
+            touchJoyY = (Math.sin(angle) * clampedD) / maxR;
+
+            document.getElementById('joystickKnob').style.transform = `translate(${Math.cos(angle)*clampedD}px, ${Math.sin(angle)*clampedD}px)`;
+        }
+
+        let dashCooldown = 0;
+        function triggerDash() {
+            if (dashCooldown > 0 || !playerGroup) return;
+            dashCooldown = 120; // 2 seconds
+            const dir = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), playerGroup.rotation.y);
+            playerGroup.position.addScaledVector(dir, 8);
+        }
+
+        function spawnEnemy() {
+            if (gameOver || !playerGroup) return;
+            const types = ['cucaracha', 'raton', 'hormiga', 'gusano'];
+            const type = types[Math.floor(Math.random() * types.length)];
+
+            let color = 0x5c4033, size = 1.5, hpVal = 2 * level, speedVal = 0.08 + level * 0.01;
+            let geo;
+
+            if (type === 'cucaracha') {
+                color = 0x4a3525; geo = new THREE.BoxGeometry(1.6, 0.8, 2.2);
+            } else if (type === 'raton') {
+                color = 0x888888; geo = new THREE.CapsuleGeometry(0.8, 1.2, 4, 8);
+            } else if (type === 'hormiga') {
+                color = 0x1f1f1f; geo = new THREE.SphereGeometry(1, 8, 8);
+            } else {
+                color = 0xdb2777; geo = new THREE.CylinderGeometry(0.7, 0.7, 2.5, 8);
+            }
+
+            const mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.6 });
+            const mesh = new THREE.Mesh(geo, mat);
+
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 45;
+            mesh.position.set(playerGroup.position.x + Math.cos(angle) * dist, 1, playerGroup.position.z + Math.sin(angle) * dist);
+            mesh.castShadow = true;
+
+            scene.add(mesh);
+            enemies.push({ mesh: mesh, type: type, speed: speedVal, hp: hpVal, maxHp: hpVal });
+        }
+
+        setInterval(spawnEnemy, 1800);
+
+        function shootBullet() {
+            if (gameOver || !playerGroup) return;
+            const bulletGeo = new THREE.SphereGeometry(0.35, 8, 8);
+            const bulletMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+            const bullet = new THREE.Mesh(bulletGeo, bulletMat);
+
+            bullet.position.copy(playerGroup.position);
+            bullet.position.y = 1.8;
+
+            const dir = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), playerGroup.rotation.y);
+            scene.add(bullet);
+            bullets.push({ mesh: bullet, dir: dir, speed: 0.9, damage: attackPower });
+
+            // Muzzle flash particle
+            createSparks(bullet.position, 0x00ffff, 4);
+        }
+
+        function createSparks(pos, colorHex, count) {
+            for (let i = 0; i < count; i++) {
+                const pGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
+                const pMat = new THREE.MeshBasicMaterial({ color: colorHex });
+                const p = new THREE.Mesh(pGeo, pMat);
+                p.position.copy(pos);
+                scene.add(p);
+                particles.push({
+                    mesh: p,
+                    velocity: new THREE.Vector3((Math.random() - 0.5) * 0.3, Math.random() * 0.3, (Math.random() - 0.5) * 0.3),
+                    life: 20
+                });
+            }
+        }
+
+        function animate() {
+            if (!gameOver) {
+                requestAnimationFrame(animate);
+
+                // XP over time (survival)
+                if (Math.random() < 0.05) {
+                    xp += 1;
+                    checkLevelUp();
+                }
+
+                // Player movement (PC + Touch)
+                let moveSpeed = 0.35;
+                let dx = 0, dz = 0;
+
+                if (keys['w'] || keys['arrowup'] || keys['KeyW'] || keys['ArrowUp']) dz -= moveSpeed;
+                if (keys['s'] || keys['arrowdown'] || keys['KeyS'] || keys['ArrowDown']) dz += moveSpeed;
+                if (keys['a'] || keys['arrowleft'] || keys['KeyA'] || keys['ArrowLeft']) dx -= moveSpeed;
+                if (keys['d'] || keys['arrowright'] || keys['KeyD'] || keys['ArrowRight']) dx += moveSpeed;
+
+                if (touchJoyActive) {
+                    dx += touchJoyX * moveSpeed;
+                    dz += touchJoyY * moveSpeed;
+                }
+
+                if (dx !== 0 || dz !== 0) {
+                    let nextX = playerGroup.position.x + dx;
+                    let nextZ = playerGroup.position.z + dz;
+
+                    // Obstacle collision check
+                    let blocked = false;
+                    for (let obs of obstacles) {
+                        if (Math.hypot(nextX - obs.x, nextZ - obs.z) < obs.radius + 1) {
+                            blocked = true; break;
+                        }
+                    }
+
+                    if (!blocked) {
+                        playerGroup.position.x = Math.max(-55, Math.min(55, nextX));
+                        playerGroup.position.z = Math.max(-55, Math.min(55, nextZ));
+                    }
+
+                    playerGroup.rotation.y = Math.atan2(dx, dz);
+
+                    // Limb animation (walk cycle)
+                    const time = Date.now() * 0.01;
+                    const leftLeg = playerGroup.getObjectByName('leftLeg');
+                    const rightLeg = playerGroup.getObjectByName('rightLeg');
+                    if (leftLeg && rightLeg) {
+                        leftLeg.rotation.x = Math.sin(time) * 0.6;
+                        rightLeg.rotation.x = -Math.sin(time) * 0.6;
+                    }
+                }
+
+                if (mouseFiring) {
+                    if (Math.random() < 0.25) shootBullet();
+                }
+
+                if (dashCooldown > 0) dashCooldown--;
+
+                // Smooth 3D Third-Person Camera follow
+                const targetCamPos = new THREE.Vector3(
+                    playerGroup.position.x,
+                    playerGroup.position.y + 18,
+                    playerGroup.position.z + 22
+                );
+                camera.position.lerp(targetCamPos, 0.1);
+                camera.lookAt(playerGroup.position.x, playerGroup.position.y + 1, playerGroup.position.z);
+
+                // Update Bullets
+                for (let i = bullets.length - 1; i >= 0; i--) {
+                    let b = bullets[i];
+                    b.mesh.position.addScaledVector(b.dir, b.speed);
+                    if (b.mesh.position.length() > 70) {
+                        scene.remove(b.mesh);
+                        bullets.splice(i, 1);
+                    }
+                }
+
+                // Update Particles
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    let pt = particles[i];
+                    pt.mesh.position.add(pt.velocity);
+                    pt.life--;
+                    if (pt.life <= 0) {
+                        scene.remove(pt.mesh);
+                        particles.splice(i, 1);
+                    }
+                }
+
+                // Update Enemies AI
+                for (let i = enemies.length - 1; i >= 0; i--) {
+                    let en = enemies[i];
+                    en.mesh.lookAt(playerGroup.position);
+                    en.mesh.translateZ(en.speed);
+
+                    // Check collision with player
+                    if (en.mesh.position.distanceTo(playerGroup.position) < 1.8) {
+                        hp -= 0.4;
+                        updateHud();
+                        if (hp <= 0) {
+                            gameOver = true;
+                            document.getElementById('finalKills').textContent = kills;
+                            document.getElementById('finalCoins').textContent = coinsCount;
+                            document.getElementById('finalLevel').textContent = level;
+                            document.getElementById('finalPoints').textContent = kills * 10 + coinsCount * 5 + xp;
+                            document.getElementById('gameOverModal').style.display = 'flex';
+                        }
+                    }
+
+                    // Check bullet collision with enemy
+                    for (let j = bullets.length - 1; j >= 0; j--) {
+                        let b = bullets[j];
+                        if (en.mesh.position.distanceTo(b.mesh.position) < 1.6) {
+                            createSparks(b.mesh.position, 0xff3d00, 5);
+                            scene.remove(b.mesh);
+                            bullets.splice(j, 1);
+                            en.hp -= b.damage;
+
+                            if (en.hp <= 0) {
+                                scene.remove(en.mesh);
+                                enemies.splice(i, 1);
+                                kills++;
+                                coinsCount++;
+                                xp += 25; // XP reward per kill
+                                checkLevelUp();
+                                updateHud();
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                renderer.render(scene, camera);
+            }
+        }
+
+        function checkLevelUp() {
+            let requiredXp = level * 100;
+            if (xp >= requiredXp) {
+                level++;
+                maxHp += 20;
+                hp = maxHp;
+                attackPower += 0.5;
+                alert(`🎉 ¡NIVEL UP! Has alcanzado el Nivel ${level}. HP máximo y Daño aumentados.`);
+            }
+            updateHud();
+        }
+
+        function enviarPuntuacion() {
+            const totalPoints = kills * 10 + coinsCount * 5 + xp;
+            fetch('/juego-arena/guardar_score', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ kills: kills, coins: coinsCount, puntos: totalPoints, xp: xp, level: level })
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert('¡Puntuación y XP guardadas con éxito en el servidor!');
+                window.location.reload();
+            })
+            .catch(err => {
+                alert('Error al guardar puntuación.');
+            });
+        }
+    </script>
+</body>
+</html>

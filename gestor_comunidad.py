@@ -3,6 +3,7 @@ import sqlite3
 import csv
 import io
 import shutil
+import google.generativeai as genai
 from flask import Flask, render_template, request, redirect, url_for, flash, session, Response, jsonify, send_from_directory
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -79,20 +80,10 @@ if DB_PATH == "/data/community_database.db" and os.path.exists(local_fallback_db
     except Exception as ex:
         print(f"Nota en sincronización de DB: {ex}")
 
-# Selección segura de carpeta de subidas (Uploads) persistente
-try:
-    if "/data" in DB_PATH:
-        UPLOAD_FOLDER = os.path.join("/data", "uploads")
-    else:
-        UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    test_up = os.path.join(UPLOAD_FOLDER, ".test")
-    with open(test_up, "w") as f:
-        f.write("test")
-    os.remove(test_up)
-except Exception:
-    UPLOAD_FOLDER = os.path.join("/tmp", "uploads")
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# Selección robusta y permanente de carpeta de subidas (Uploads) para evitar pérdida de datos
+UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+print(f"✅ Directorio de almacenamiento persistente verificado en: {UPLOAD_FOLDER}")
 
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
@@ -1160,6 +1151,44 @@ def admin_eliminar_enlace(enlace_id):
     conn.close()
     flash("Enlace eliminado.", "success")
     return redirect(url_for('admin_panel'))
+
+@app.route('/admin/anuncio/generar-ia', methods=['POST'])
+def admin_generar_anuncio_ia():
+    user = get_current_user()
+    if not user or user['rol'] not in ['admin', 'moderador']:
+        return jsonify({"error": "No autorizado"}), 403
+    
+    data = request.get_json() or {}
+    tema = data.get('tema', '').strip()
+    if not tema:
+        return jsonify({"error": "Tema vacío"}), 400
+    
+    try:
+        api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        if api_key:
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel('gemini-3.8-flash')
+            prompt = f"Genera un anuncio llamativo y profesional para una comunidad en línea sobre el siguiente tema: '{tema}'. Devuelve la respuesta exactamente en este formato:\nTÍTULO: [Título atractivo con emojis]\nCONTENIDO: [Cuerpo del anuncio motivador y claro]."
+            response = model.generate_content(prompt)
+            texto = response.text
+            
+            # Parsear TÍTULO y CONTENIDO
+            titulo = "📢 Anuncio de la Comunidad"
+            contenido = texto
+            if "TÍTULO:" in texto and "CONTENIDO:" in texto:
+                partes = texto.split("CONTENIDO:")
+                titulo_parte = partes[0].replace("TÍTULO:", "").strip()
+                if titulo_parte:
+                    titulo = titulo_parte
+                contenido = partes[1].strip()
+            return jsonify({"titulo": titulo, "contenido": contenido})
+        else:
+            return jsonify({
+                "titulo": f"✨ ¡Atención Comunidad: {tema}!",
+                "contenido": f"Hola a todos, tenemos un aviso importante sobre {tema}. ¡No se lo pierdan y participen activamente!"
+            })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/admin/anuncio/agregar', methods=['POST'])
 def admin_agregar_anuncio():

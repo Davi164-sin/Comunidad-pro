@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CodeBox Arena 3D Pro - {{ cfg.titulo_plataforma }}</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; touch-action: none; }
+  body, html { width: 100%; height: 100%; overflow: hidden; background: #010402; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; position: fixed; }
+  #canvas3d-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; background: #010402; }
+  canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
+
+  /* HUD SUPERIOR TÁCTICO NEÓN PROFESIONAL */
+  #hud {
+    position: absolute; top: 0; left: 0; width: 100%; padding: 10px 16px;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+    background: linear-gradient(to bottom, rgba(1,4,2,0.95), rgba(1,4,2,0));
+    pointer-events: none; z-index: 20;
+  }
+  .hud-box { display: flex; flex-direction: column; background: rgba(5,14,8,0.92); backdrop-filter: blur(8px); padding: 6px 14px; border-radius: 10px; border: 1.5px solid rgba(0,255,136,0.6); box-shadow: 0 0 18px rgba(0,255,136,0.3); }
+  .label { font-size: 10px; font-weight: bold; color: #00ff88; letter-spacing: 0.8px; text-transform: uppercase; }
+  .value { font-size: 15px; font-weight: bold; color: #ffffff; font-family: monospace; }
+
+  .hp-bar-container { width: 110px; height: 10px; background: rgba(0,0,0,0.85); border: 1.5px solid #00ff88; border-radius: 6px; overflow: hidden; margin-top: 3px; }
+  .hp-bar-fill { height: 100%; background: linear-gradient(90deg, #00ff88, #00b4ff); width: 100%; transition: width 0.15s ease; box-shadow: 0 0 12px #00ff88; }
+
+  /* ENEMY HEALTH BAR OVERLAY */
+  .enemy-hp-bar {
+    position: absolute; width: 44px; height: 6px; background: rgba(0,0,0,0.85);
+    border: 1px solid #ff3d00; border-radius: 3px; transform: translate(-50%, -24px);
+    pointer-events: none; z-index: 15; display: none; overflow: hidden; box-shadow: 0 0 8px rgba(255,61,0,0.5);
+  }
+  .enemy-hp-fill { height: 100%; background: #ff3d00; width: 100%; }
+
+  /* MENÚ DESPLEGABLE COMPACTO DE HERRAMIENTAS */
+  #dropdown-menu-container {
+    position: absolute; top: 12px; right: 16px; z-index: 50; pointer-events: auto;
+  }
+  .menu-toggle-btn {
+    background: linear-gradient(135deg, #00ff88, #059669);
+    color: #010402; border: 1.5px solid #34d399; padding: 8px 16px;
+    border-radius: 10px; font-size: 13px; font-weight: bold;
+    cursor: pointer; display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 4px 20px rgba(0,255,136,0.5);
+    transition: all 0.2s;
+  }
+  .menu-toggle-btn:hover { background: #00ffaa; transform: scale(1.03); }
+  
+  .compact-dropdown {
+    position: absolute; top: 46px; right: 0; width: 240px;
+    background: rgba(3, 10, 5, 0.98); backdrop-filter: blur(12px);
+    border: 1.5px solid #00ff88; border-radius: 14px;
+    padding: 10px; display: none; flex-direction: column; gap: 8px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.95);
+  }
+  .compact-dropdown.show { display: flex; }
+  .compact-item {
+    background: rgba(255, 255, 255, 0.05); color: #fff;
+    border: 1px solid rgba(0, 255, 136, 0.3); border-radius: 8px;
+    padding: 9px 12px; font-size: 12px; font-weight: 600;
+    cursor: pointer; text-align: left; transition: all 0.2s;
+    display: flex; align-items: center; gap: 10px; text-decoration: none;
+  }
+  .compact-item:hover { background: rgba(0, 255, 136, 0.25); border-color: #00ff88; color: #00ff88; }
+
+  /* ZONA DE CONTROLES TÁCTILES MÓVIL OPTIMIZADA */
+  #controls { position: absolute; bottom: 0; left: 0; width: 100%; height: 190px; pointer-events: none; z-index: 25; }
+  #jz {
+    position: absolute; bottom: 20px; left: 20px; width: 130px; height: 130px;
+    border-radius: 50%; border: 3px solid rgba(0,255,136,0.6); background: rgba(5,14,8,0.7);
+    pointer-events: auto; touch-action: none; display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px); box-shadow: 0 0 25px rgba(0,255,136,0.35);
+  }
+  #jk {
+    width: 55px; height: 55px; border-radius: 50%;
+    background: radial-gradient(circle, #00ff88 0%, #059669 100%);
+    border: 2px solid #ffffff; position: absolute; top: 37px; left: 37px; pointer-events: none;
+    box-shadow: 0 0 15px #00ff88;
+  }
+  
+  .action-buttons-right {
+    position: absolute; bottom: 20px; right: 20px; display: flex; gap: 14px; pointer-events: auto; align-items: flex-end;
+  }
+  .touch-btn {
+    width: 78px; height: 78px; border-radius: 50%;
+    border: 3px solid #ffffff; color: #ffffff; font-size: 12px; font-weight: bold;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    pointer-events: auto; touch-action: none; backdrop-filter: blur(8px); cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .touch-btn:active { transform: scale(0.90); }
+  #fb-fire { background: radial-gradient(circle, #00ffaa 0%, #008f4c 100%); box-shadow: 0 0 30px rgba(0,255,170,0.85); width: 88px; height: 88px; font-size: 14px; }
+  #fb-jump { background: radial-gradient(circle, #00b4ff 0%, #005f99 100%); box-shadow: 0 0 22px rgba(0,180,255,0.75); }
+  #fb-dash { background: radial-gradient(circle, #ffea00 0%, #b8860b 100%); box-shadow: 0 0 22px rgba(255,234,0,0.75); color: #010402; }
+
+  /* MODALES Y ESTILOS */
+  .modal-content { background: #040d07; border: 2px solid #00ff88; color: #fff; border-radius: 18px; }
+  .modal-card { background: #040d07; border: 2.5px solid #00ff88; border-radius: 1.5rem; padding: 25px; width: 90%; max-width: 480px; text-align: center; color: white; box-shadow: 0 0 50px rgba(0,255,136,0.4); }
+
+  #pauseModal, #challengeStartModal, #gameOverModal {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.92); display: none; align-items: center; justify-content: center;
+    z-index: 100; backdrop-filter: blur(10px);
+  }
+</style>
+</head>
+<body>
+
+  <!-- HUD SUPERIOR TÁCTICO -->
+  <div id="hud">
+    <div class="hud-box">
+      <div class="label">SALUD HP</div>
+      <div class="hp-bar-container"><div class="hp-bar-fill" id="hp-fill"></div></div>
+      <div class="value" id="hp-val">100</div>
+    </div>
+    <div class="hud-box">
+      <div class="label">🪙 MONEDAS</div>
+      <div class="value text-warning" id="hud-coins">0</div>
+    </div>
+    <div class="hud-box">
+      <div class="label">NIVEL & XP</div>
+      <div class="value text-info" id="diff-val">Nivel 1 (0 XP)</div>
+    </div>
+    <div class="hud-box">
+      <div class="label">BAJAS BICHOS</div>
+      <div class="value text-danger" id="kills-val">0</div>
+    </div>
+    <div class="hud-box">
+      <div class="label">ARMA ACTIVA</div>
+      <div class="value text-success" id="hud-weapon">Bláster Táctico 🔫</div>
+    </div>
+  </div>
+
+  <!-- MENÚ DESPLEGABLE COMPACTO DE HERRAMIENTAS -->
+  <div id="dropdown-menu-container">
+    <button class="menu-toggle-btn" onclick="toggleDropdownMenu()">
+      <i class="fas fa-bars"></i> Menú
+    </button>
+    <div class="compact-dropdown" id="compactDropdown">
+      <button class="compact-item" onclick="openShopModal()"><i class="fas fa-shopping-cart text-warning"></i> Tienda (Armas y Poderes)</button>
+      <button class="compact-item" onclick="openLevelsModal()"><i class="fas fa-map-marked-alt text-info"></i> Seleccionar Nivel</button>
+      <button class="compact-item" onclick="openGamesModal()"><i class="fas fa-gamepad text-success"></i> 7 Minijuegos & 1v1</button>
+      <button class="compact-item" onclick="openBgThemeModal()"><i class="fas fa-image" style="color: #d500f9;"></i> Cambiar Tema 3D</button>
+      <button class="compact-item" onclick="togglePause()"><i class="fas fa-pause text-light"></i> Pausar / Continuar</button>
+      <button class="compact-item" data-bs-toggle="modal" data-bs-target="#pcToolModal"><i class="fas fa-keyboard text-primary"></i> Controles & PC</button>
+      <button class="compact-item" data-bs-toggle="modal" data-bs-target="#rankingModal"><i class="fas fa-trophy text-warning"></i> Ranking Global</button>
+      <a href="{{ url_for('zona_juegos') }}" class="compact-item text-danger"><i class="fas fa-arrow-left"></i> Salir al Menú</a>
+    </div>
+  </div>
+
+  <!-- THREE.JS 3D VIEWPORT CONTAINER -->
+  <div id="canvas3d-container"></div>
+
+  <!-- CONTROLES TÁCTILES MÓVIL (IZQ: JOYSTICK, DER: ACCIONES) -->
+  <div id="controls">
+    <div id="jz"><div id="jk"></div></div>
+    <div class="action-buttons-right">
+      <div id="fb-dash" class="touch-btn"><span>⚡</span><small>DASH</small></div>
+      <div id="fb-jump" class="touch-btn"><span>⬆</span><small>SALTO</small></div>
+      <div id="fb-fire" class="touch-btn"><span>🔥</span><small>FUEGO</small></div>
+    </div>
+  </div>
+
+  <!-- Modal Pausa -->
+  <div id="pauseModal">
+    <div class="modal-card" style="max-width: 480px;">
+      <h2 class="text-warning fw-bold mb-3"><i class="fas fa-pause-circle me-2"></i>JUEGO EN PAUSA</h2>
+      <p class="text-muted mb-3">Arena 3D Pro activa. Selecciona una opción o continúa.</p>
+      
+      <div class="d-grid gap-2 mb-3">
+        <button class="btn btn-success btn-lg fw-bold shadow" onclick="togglePause()"><i class="fas fa-play me-2"></i>Continuar Partida</button>
+        <button class="btn btn-outline-warning fw-bold" onclick="openShopModal(); togglePause();"><i class="fas fa-shopping-cart me-2"></i>Tienda (Armas y Poderes)</button>
+        <button class="btn btn-outline-info fw-bold" onclick="openLevelsModal(); togglePause();"><i class="fas fa-map-marked-alt me-2"></i>Seleccionar Nivel</button>
+        <button class="btn btn-outline-success fw-bold" onclick="openGamesModal(); togglePause();"><i class="fas fa-gamepad me-2"></i>7 Minijuegos & 1v1</button>
+        <button class="btn btn-outline-purple fw-bold" style="color: #d500f9; border-color: #d500f9;" onclick="openBgThemeModal(); togglePause();"><i class="fas fa-image me-2"></i>Cambiar Tema 3D</button>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-light btn-sm w-50" onclick="location.reload()">Reiniciar</button>
+        <a href="{{ url_for('zona_juegos') }}" class="btn btn-outline-danger btn-sm w-50">Salir</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Inicio de Reto / Dashboard de Configuración -->
+  <div id="challengeStartModal" style="display: flex; z-index: 9999;">
+    <div class="modal-card" style="border: 2.5px solid #00ff88; box-shadow: 0 0 60px rgba(0,255,136,0.5); max-width: 540px; text-align: left;">
+      <h3 class="text-success fw-bold mb-2 text-center"><i class="fas fa-cube me-2"></i>CODEBOX ARENA 3D PRO</h3>
+      <p class="text-muted text-center mb-3 small">Soldado cibernético táctico vs Horda de Invasores 3D con Modelos GLTF HD.</p>
+      
+      <!-- Selector de Nivel -->
+      <div class="mb-3">
+        <label class="form-label text-warning small fw-bold"><i class="fas fa-layer-group me-1"></i> 1. Seleccionar Nivel / Partida:</label>
+        <select id="startLevelSelect" class="form-select bg-dark text-white border-success form-select-sm" onchange="setLevel(parseInt(this.value))">
+          <option value="1">Nivel 1: Nido de Hormigas Gigantes 🟩</option>
+          <option value="2">Nivel 2: Invasión de Cucarachas Blindadas 🟦</option>
+          <option value="3">Nivel 3: Túnel de Gusanos Mutantes 🟥</option>
+          <option value="4">Nivel 4: Cloaca de Ratones Feroz 🟪</option>
+          <option value="5">Nivel 5: Horda Legendaria Suprema 🟨</option>
+        </select>
+      </div>
+
+      <!-- Selector de Tema 3D -->
+      <div class="mb-3">
+        <label class="form-label text-warning small fw-bold"><i class="fas fa-image me-1"></i> 2. Tema Visual 3D de la Arena:</label>
+        <select id="startBgSelect" class="form-select bg-dark text-white border-success form-select-sm" onchange="setBgTheme(this.value)">
+          <option value="garden">🌿 Jardín Neón & Césped Táctico</option>
+          <option value="lab">🔬 Laboratorio Científico Sci-Fi</option>
+          <option value="sewer">🕳️ Cloaca y Pantano Industrial</option>
+          <option value="space">🌌 Cueva Galáctica Estelar</option>
+        </select>
+      </div>
+
+      <!-- Tienda Rápida -->
+      <div class="mb-3">
+        <label class="form-label text-warning small fw-bold"><i class="fas fa-store me-1"></i> 3. Tienda Rápida (Monedas: <span id="dashCoins" class="text-warning">0</span> 🪙):</label>
+        <div class="d-flex gap-2 flex-wrap">
+          <button class="btn btn-outline-success btn-sm flex-grow-1" onclick="buyShopItem('shield', 10)">🛡️ Escudo (10🪙)</button>
+          <button class="btn btn-outline-success btn-sm flex-grow-1" onclick="buyShopItem('speed', 15)">⚡ Velocidad (15🪙)</button>
+          <button class="btn btn-outline-success btn-sm flex-grow-1" onclick="buyShopItem('dualGun', 25)">⚡ Doble Bláster (25🪙)</button>
+          <button class="btn btn-outline-success btn-sm flex-grow-1" onclick="buyShopItem('plasmaRay', 40)">💥 Rayo Plasma (40🪙)</button>
+        </div>
+      </div>
+
+      <!-- Modo de Juego -->
+      <div class="mb-4">
+        <label class="form-label text-warning small fw-bold"><i class="fas fa-users me-1"></i> 4. Modo de Juego:</label>
+        <div class="d-grid gap-2">
+          <button id="btnSolo" class="btn btn-outline-success btn-sm fw-bold active" onclick="setGameMode(1)">👤 Supervivencia 3D Solitario vs Bichos</button>
+          <button id="btn1v1" class="btn btn-outline-danger btn-sm fw-bold" onclick="start1v1Matchmaking()">⚔️ Multijugador 1v1 en Línea con Rival</button>
+        </div>
+        <div id="matchmakingStatus" class="text-center text-warning small mt-2"></div>
+      </div>
+
+      <div class="d-grid">
+        <button id="startBtn" class="btn btn-success btn-lg fw-bold shadow py-2" onclick="responderReto(true)"><i class="fas fa-play me-2"></i>¡ENTRAR A LA ARENA 3D GLTF HD!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Tienda de Poderes y Armas -->
+  <div class="modal fade" id="shopModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-success">
+          <h5 class="modal-title fw-bold text-success"><i class="fas fa-store me-2 text-warning"></i>Tienda de Poderes y Armas 3D</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-warning fw-bold">🪙 Monedas Acumuladas: <span id="shopCoinsVal">0</span></p>
+          
+          <div class="d-flex justify-content-between align-items-center p-2 mb-2 bg-dark rounded border border-secondary">
+            <div><strong>🛡️ Escudo Defensivo</strong><br><small class="text-muted">Protege de 1 impacto mortal de bichos</small></div>
+            <button class="btn btn-outline-success btn-sm fw-bold" onclick="buyShopItem('shield', 10)">10 🪙</button>
+          </div>
+          <div class="d-flex justify-content-between align-items-center p-2 mb-2 bg-dark rounded border border-secondary">
+            <div><strong>⚡ Botas Súper Velocidad</strong><br><small class="text-muted">+40% rapidez de movimiento</small></div>
+            <button class="btn btn-outline-success btn-sm fw-bold" onclick="buyShopItem('speed', 15)">15 🪙</button>
+          </div>
+          <div class="d-flex justify-content-between align-items-center p-2 mb-2 bg-dark rounded border border-secondary">
+            <div><strong>⚡ Doble Bláster Neón</strong><br><small class="text-muted">Dispara doble ráfaga láser verde</small></div>
+            <button class="btn btn-outline-success btn-sm fw-bold" onclick="buyShopItem('dualGun', 25)">25 🪙</button>
+          </div>
+          <div class="d-flex justify-content-between align-items-center p-2 mb-2 bg-dark rounded border border-secondary">
+            <div><strong>💥 Rayo de Plasma Destructivo</strong><br><small class="text-muted">Daño masivo por impacto</small></div>
+            <button class="btn btn-outline-success btn-sm fw-bold" onclick="buyShopItem('plasmaRay', 40)">40 🪙</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Selector de Niveles -->
+  <div class="modal fade" id="levelsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-info">
+          <h5 class="modal-title fw-bold text-info"><i class="fas fa-layer-group me-2"></i>Selección de Nivel 3D</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="list-group">
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary d-flex justify-content-between align-items-center" onclick="setLevel(1); bootstrap.Modal.getInstance(document.getElementById('levelsModal')).hide();">
+              <div><strong>Nivel 1: Nido de Hormigas</strong><br><small class="text-success">Hormigas ágiles y enjambres</small></div>
+              <span class="badge bg-success">Elegir</span>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary d-flex justify-content-between align-items-center" onclick="setLevel(2); bootstrap.Modal.getInstance(document.getElementById('levelsModal')).hide();">
+              <div><strong>Nivel 2: Invasión de Cucarachas</strong><br><small class="text-info">Cucarachas blindadas grandes</small></div>
+              <span class="badge bg-info">Elegir</span>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary d-flex justify-content-between align-items-center" onclick="setLevel(3); bootstrap.Modal.getInstance(document.getElementById('levelsModal')).hide();">
+              <div><strong>Nivel 3: Túnel de Gusanos</strong><br><small class="text-danger">Gusanos mutantes de asalto</small></div>
+              <span class="badge bg-danger">Elegir</span>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary d-flex justify-content-between align-items-center" onclick="setLevel(4); bootstrap.Modal.getInstance(document.getElementById('levelsModal')).hide();">
+              <div><strong>Nivel 4: Cloaca de Ratones</strong><br><small class="text-purple" style="color: #d500f9;">Ratones feroces y rápidos</small></div>
+              <span class="badge bg-secondary">Elegir</span>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary d-flex justify-content-between align-items-center" onclick="setLevel(5); bootstrap.Modal.getInstance(document.getElementById('levelsModal')).hide();">
+              <div><strong>Nivel 5: Horda Legendaria Supremo</strong><br><small class="text-warning">Todos los jefes y bichos 3D</small></div>
+              <span class="badge bg-warning text-dark">Elegir</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 7 Juegos Arcade & 1v1 -->
+  <div class="modal fade" id="gamesModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-warning">
+          <h5 class="modal-title fw-bold text-warning"><i class="fas fa-gamepad me-2"></i>7 Minijuegos & Arena 3D</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="list-group">
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary" onclick="selectMiniGame(1)">
+              <strong>1. Arena 3D Pro (Supervivencia & Niveles)</strong><br><small class="text-muted">Modo principal 3D con armas, tienda y hordas.</small>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary" onclick="selectMiniGame(2)">
+              <strong>2. Duelo 3D 1v1 (Jugador vs Rival)</strong><br><small class="text-muted">Duelo cara a cara en entorno tridimensional.</small>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary" onclick="selectMiniGame(3)">
+              <strong>3. Carrera de Gusanos 3D</strong><br><small class="text-muted">Esquiva obstáculos en la pista 3D.</small>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary" onclick="selectMiniGame(4)">
+              <strong>4. Caza de Cucarachas Contrarreloj</strong><br><small class="text-muted">Elimina cucarachas en tiempo récord.</small>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary" onclick="selectMiniGame(5)">
+              <strong>5. Defensa de Núcleo contra Hormigas</strong><br><small class="text-muted">Protege la base central 3D.</small>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary" onclick="selectMiniGame(6)">
+              <strong>6. Laberinto de Bichos 3D</strong><br><small class="text-muted">Recolecta cristales en el laberinto.</small>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary" onclick="selectMiniGame(7)">
+              <strong>7. Gusano Snake Neón 3D</strong><br><small class="text-muted">Crece comiendo insectos en el espacio.</small>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Game Over -->
+  <div id="gameOverModal">
+    <div class="modal-card">
+      <h2 class="text-danger fw-bold mb-3"><i class="fas fa-skull-crossbones me-2"></i>PARTIDA FINALIZADA</h2>
+      <p class="text-muted mb-2">¡Has caído en combate en la Arena 3D Pro!</p>
+      <div class="bg-black p-3 rounded mb-3 border border-success">
+        <h4 class="text-warning mb-1">Bajas de Bichos: <span id="finalKills">0</span></h4>
+        <h5 class="text-info mb-1">🪙 Monedas Ganadas: <span id="finalCoins">0</span></h5>
+        <h6 class="text-primary mb-1">⭐ Nivel Alcanzado: <span id="finalLevel">1</span></h6>
+        <p class="text-success small mb-0">+<span id="finalPoints">0</span> Puntos de Contribución para la Plataforma</p>
+      </div>
+      {% if usuario %}
+        <button id="btnGuardarScore" class="btn btn-success btn-lg w-100 fw-bold mb-2 shadow" onclick="enviarPuntuacion()">Guardar en el Ranking Global</button>
+      {% else %}
+        <a href="{{ url_for('login') }}" class="btn btn-warning btn-lg w-100 fw-bold mb-2">Inicia sesión para guardar tu récord</a>
+      {% endif %}
+      <button class="btn btn-outline-light btn-sm w-100 mt-2" onclick="location.reload()">Jugar de Nuevo</button>
+    </div>
+  </div>
+
+  <!-- Modal Herramientas PC -->
+  <div class="modal fade" id="pcToolModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-success">
+          <h5 class="modal-title fw-bold text-success"><i class="fas fa-keyboard me-2"></i>Controles y Configuración PC</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <ul class="list-unstyled small text-light mb-3">
+            <li><strong>Movimiento:</strong> <code>W</code>, <code>A</code>, <code>S</code>, <code>D</code> o Flechas.</li>
+            <li><strong>Correr:</strong> Mantener <code>Shift</code>.</li>
+            <li><strong>Saltar:</strong> Tecla <code>Espacio</code>.</li>
+            <li><strong>Dash / Habilidad:</strong> Tecla <code>F</code> o Botón Dash.</li>
+            <li><strong>Disparar:</strong> Click Izquierdo o Botón Fuego.</li>
+            <li><strong>Pausa:</strong> Tecla <code>P</code> o <code>Esc</code>.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Ranking -->
+  <div class="modal fade" id="rankingModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-success">
+          <h5 class="modal-title fw-bold text-success"><i class="fas fa-trophy me-2"></i>Ranking Global 3D</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="list-group">
+            {% for top in top_jugadores %}
+              <div class="list-group-item bg-black text-white d-flex justify-content-between align-items-center border-secondary">
+                <div>
+                  <span class="badge bg-warning text-dark me-2">#{{ loop.index }}</span>
+                  <strong>{{ top.nombre }}</strong>
+                </div>
+                <span class="badge bg-success fs-6">{{ top.puntos_contribucion }} pts</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Cambio de Tema 3D -->
+  <div class="modal fade" id="bgThemeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-purple" style="border-color: #d500f9 !important;">
+          <h5 class="modal-title fw-bold" style="color: #d500f9;"><i class="fas fa-image me-2"></i>Seleccionar Tema 3D</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="list-group">
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary d-flex justify-content-between align-items-center" onclick="setBgTheme('garden'); bootstrap.Modal.getInstance(document.getElementById('bgThemeModal')).hide();">
+              <div><strong>🌿 Jardín Neón & Césped Táctico</strong><br><small class="text-success">Arena verde neón con vegetación y rocas</small></div>
+              <span class="badge bg-success">Aplicar</span>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary d-flex justify-content-between align-items-center" onclick="setBgTheme('lab'); bootstrap.Modal.getInstance(document.getElementById('bgThemeModal')).hide();">
+              <div><strong>🔬 Laboratorio Científico Sci-Fi</strong><br><small class="text-info">Base metálica con iluminación azul/cian</small></div>
+              <span class="badge bg-info">Aplicar</span>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary d-flex justify-content-between align-items-center" onclick="setBgTheme('sewer'); bootstrap.Modal.getInstance(document.getElementById('bgThemeModal')).hide();">
+              <div><strong>🕳️ Cloaca y Pantano Industrial</strong><br><small class="text-warning">Ambiente industrial oscuro con barriles</small></div>
+              <span class="badge bg-warning text-dark">Aplicar</span>
+            </button>
+            <button class="list-group-item list-group-item-action bg-dark text-white border-secondary d-flex justify-content-between align-items-center" onclick="setBgTheme('space'); bootstrap.Modal.getInstance(document.getElementById('bgThemeModal')).hide();">
+              <div><strong>🌌 Cueva Galáctica Estelar</strong><br><small style="color: #d500f9;">Nebulosa espacial púrpura neón</small></div>
+              <span class="badge bg-secondary">Aplicar</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Three.js r128 CDN, GLTFLoader, Socket.io & Bootstrap -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+  <script>
+    // Game State Variables
+    let scene, camera, renderer, playerGroup;
+    let keys = {};
+    let enemies = [], bullets = [], obstacles = [], particles = [];
+    let kills = 0, hp = 100, maxHp = 100, coinsCount = 0, xp = 0, level = 1, attackPower = 1;
+    let gameOver = true;
+    let isPaused = true;
+    let mouseX = 0, mouseY = 0, mouseFiring = false;
+    let playerVelY = 0, isJumping = false;
+    const gravity = -0.018;
+    const container = document.getElementById('canvas3d-container');
+
+    // Touch Joystick State
+    let touchJoyActive = false, touchJoyX = 0, touchJoyY = 0, touchJoyId = null;
+    let isInitialized = false;
+    let currentBgTheme = 'garden';
+    let currentMiniGameMode = 1;
+    let gltfLoader = null;
+
+    // Inventory & Upgrades
+    const inventory = {
+      shield: false,
+      speedBonus: 0,
+      dualGun: false,
+      plasmaRay: false
+    };
+
+    let socket;
+    try {
+      socket = (typeof io !== 'undefined') ? io() : { on: () => {}, emit: () => {} };
+    } catch (e) {
+      socket = { on: () => {}, emit: () => {} };
+    }
+    let is1v1Multiplayer = false;
+    let multiplayerRoom = null;
+
+    function setGameMode(mode) {
+      is1v1Multiplayer = (mode === 2);
+      document.getElementById('btnSolo').classList.toggle('active', mode === 1);
+      document.getElementById('btn1v1').classList.toggle('active', mode === 2);
+      if (mode === 1) document.getElementById('matchmakingStatus').textContent = '';
+    }
+
+    function start1v1Matchmaking() {
+      is1v1Multiplayer = true;
+      document.getElementById('btnSolo').classList.remove('active');
+      document.getElementById('btn1v1').classList.add('active');
+      document.getElementById('matchmakingStatus').textContent = 'Conectando al servidor y buscando oponente 1v1...';
+      const userName = "{{ usuario.nombre if usuario else 'Jugador Anónimo' }}";
+      socket.emit('join_arena_1v1', { nombre: userName });
+    }
+
+    socket.on('waiting_for_opponent', (data) => {
+      document.getElementById('matchmakingStatus').textContent = data.message;
+    });
+
+    socket.on('start_1v1_match', (data) => {
+      multiplayerRoom = data.room;
+      document.getElementById('matchmakingStatus').innerHTML = `<span class="text-success">¡Oponente encontrado! Partida 1v1 3D iniciada.</span>`;
+      setTimeout(() => { responderReto(true); }, 1500);
+    });
+
+    function setLevel(lvl) {
+      level = lvl;
+      document.getElementById('startLevelSelect').value = lvl;
+      updateHud();
+    }
+
+    function setBgTheme(theme) {
+      currentBgTheme = theme;
+      document.getElementById('startBgSelect').value = theme;
+      if (scene) {
+        if (theme === 'garden') {
+          scene.background = new THREE.Color(0x010402);
+          scene.fog = new THREE.FogExp2(0x010402, 0.010);
+        } else if (theme === 'lab') {
+          scene.background = new THREE.Color(0x010308);
+          scene.fog = new THREE.FogExp2(0x010308, 0.010);
+        } else if (theme === 'sewer') {
+          scene.background = new THREE.Color(0x080501);
+          scene.fog = new THREE.FogExp2(0x080501, 0.010);
+        } else if (theme === 'space') {
+          scene.background = new THREE.Color(0x050108);
+          scene.fog = new THREE.FogExp2(0x050108, 0.010);
+        }
+      }
+    }
+
+    function buyShopItem(item, cost) {
+      if (coinsCount >= cost) {
+        coinsCount -= cost;
+        if (item === 'shield') inventory.shield = true;
+        if (item === 'speed') inventory.speedBonus = 0.18;
+        if (item === 'dualGun') inventory.dualGun = true;
+        if (item === 'plasmaRay') inventory.plasmaRay = true;
+        alert(`¡Compra exitosa! Has adquirido ${item}.`);
+        updateHud();
+        document.getElementById('dashCoins').textContent = coinsCount;
+        document.getElementById('shopCoinsVal').textContent = coinsCount;
+      } else {
+        alert('Monedas insuficientes para esta compra.');
+      }
+    }
+
+    function openShopModal() {
+      document.getElementById('shopCoinsVal').textContent = coinsCount;
+      new bootstrap.Modal(document.getElementById('shopModal')).show();
+    }
+    function openLevelsModal() { new bootstrap.Modal(document.getElementById('levelsModal')).show(); }
+    function openGamesModal() { new bootstrap.Modal(document.getElementById('gamesModal')).show(); }
+    function openBgThemeModal() { new bootstrap.Modal(document.getElementById('bgThemeModal')).show(); }
+    function selectMiniGame(gId) { currentMiniGameMode = gId; openGamesModal(); }
+
+    function togglePause() {
+      isPaused = !isPaused;
+      const modal = document.getElementById('pauseModal');
+      modal.style.display = isPaused ? 'flex' : 'none';
+    }
+
+    function responderReto(accepted) {
+      document.getElementById('challengeStartModal').style.display = 'none';
+      isPaused = false;
+      gameOver = false;
+      if (!isInitialized) {
+        initGame3D();
+      } else {
+        resetGameEntities();
+      }
+    }
+
+    // Initialize 3D Engine with GLTF Models Loader & Professional Visuals
+    function initGame3D() {
+      scene = new THREE.Scene();
+      setBgTheme(currentBgTheme);
+
+      const width = container.clientWidth || window.innerWidth;
+      const height = container.clientHeight || window.innerHeight;
+
+      camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
+      camera.position.set(0, 20, 26);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(renderer.domElement);
+
+      gltfLoader = new THREE.GLTFLoader();
+
+      // Professional Cinematic Neon Lighting
+      const ambientLight = new THREE.AmbientLight(0xe2fce8, 0.8);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0x00ff88, 1.5);
+      dirLight.position.set(60, 100, 60);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 2048;
+      dirLight.shadow.mapSize.height = 2048;
+      dirLight.shadow.camera.near = 0.5;
+      dirLight.shadow.camera.far = 280;
+      const d = 70;
+      dirLight.shadow.camera.left = -d;
+      dirLight.shadow.camera.right = d;
+      dirLight.shadow.camera.top = d;
+      dirLight.shadow.camera.bottom = -d;
+      scene.add(dirLight);
+
+      const pointLight1 = new THREE.PointLight(0x00ff88, 4.0, 50);
+      pointLight1.position.set(-35, 10, -35);
+      scene.add(pointLight1);
+
+      const pointLight2 = new THREE.PointLight(0x00b4ff, 4.0, 50);
+      pointLight2.position.set(35, 10, 35);
+      scene.add(pointLight2);
+
+      const pointLight3 = new THREE.PointLight(0xff0055, 3.5, 45);
+      pointLight3.position.set(0, 10, -45);
+      scene.add(pointLight3);
+
+      // Arena Floor Grid & Metallic Borders (180x180)
+      const floorGeo = new THREE.PlaneGeometry(180, 180);
+      const floorMat = new THREE.MeshStandardMaterial({ color: 0x020a05, roughness: 0.6, metalness: 0.4 });
+      const floor = new THREE.Mesh(floorGeo, floorMat);
+      floor.rotation.x = -Math.PI / 2;
+      floor.receiveShadow = true;
+      scene.add(floor);
+
+      const grid = new THREE.GridHelper(180, 60, 0x00ff88, 0x072210);
+      grid.position.y = 0.04;
+      scene.add(grid);
+
+      buildDetailedArenaEnvironment();
+      loadFuturisticSoldierGLTF();
+
+      setupInputListeners();
+      isInitialized = true;
+
+      // Spawn initial bichos 3D HD
+      for (let i = 0; i < 6; i++) {
+        spawnEnemy3D();
+      }
+
+      window.addEventListener('resize', () => {
+        if (!container || !renderer || !camera) return;
+        const w = container.clientWidth || window.innerWidth;
+        const h = container.clientHeight || window.innerHeight;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+      });
+
+      animate3D();
+    }
+
+    function resetGameEntities() {
+      kills = 0; hp = 100; maxHp = 100; coinsCount = 0; xp = 0; level = 1;
+      playerVelY = 0; isJumping = false;
+      enemies.forEach(e => {
+        scene.remove(e.group);
+        if (e.hpBar && e.hpBar.element) e.hpBar.element.remove();
+      });
+      bullets.forEach(b => scene.remove(b.mesh));
+      enemies = []; bullets = [];
+      for (let i = 0; i < 6; i++) spawnEnemy3D();
+      updateHud();
+    }
+
+    // Build professional sci-fi environment with detailed buildings, metal crates, barrels, rocks & vegetation
+    function buildDetailedArenaEnvironment() {
+      const metalMat = new THREE.MeshStandardMaterial({ color: 0x1b3b24, roughness: 0.3, metalness: 0.8 });
+      const barrelMat = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.2, metalness: 0.5, emissive: 0x00ff88, emissiveIntensity: 0.7 });
+      const rockMat = new THREE.MeshStandardMaterial({ color: 0x243328, roughness: 0.85, metalness: 0.2 });
+      const leafMat = new THREE.MeshStandardMaterial({ color: 0x00c853, roughness: 0.5 });
+      const trunkMat = new THREE.MeshStandardMaterial({ color: 0x3e2723, roughness: 0.8 });
+      const buildingMat = new THREE.MeshStandardMaterial({ color: 0x0d2114, roughness: 0.35, metalness: 0.7 });
+
+      // Perimeter Sci-Fi Walls / Buildings
+      const wallGeo = new THREE.BoxGeometry(180, 14, 3.5);
+      const wall1 = new THREE.Mesh(wallGeo, buildingMat);
+      wall1.position.set(0, 7, -90); wall1.castShadow = true; wall1.receiveShadow = true; scene.add(wall1);
+      const wall2 = wall1.clone(); wall2.position.set(0, 7, 90); scene.add(wall2);
+      const wall3 = new THREE.Mesh(new THREE.BoxGeometry(3.5, 14, 180), buildingMat);
+      wall3.position.set(-90, 7, 0); wall3.castShadow = true; wall3.receiveShadow = true; scene.add(wall3);
+      const wall4 = wall3.clone(); wall4.position.set(90, 7, 0); scene.add(wall4);
+
+      obstacles.push({x: 0, z: -90, radius: 3.0}, {x: 0, z: 90, radius: 3.0}, {x: -90, z: 0, radius: 3.0}, {x: 90, z: 0, radius: 3.0});
+
+      // Detailed Metal Crates & Glowing Plasma Barrels
+      const props = [
+        {type: 'crate', x: -40, z: -40, w: 7.5, h: 7.5, d: 7.5},
+        {type: 'crate', x: 40, z: -40, w: 8.5, h: 6.5, d: 8.5},
+        {type: 'crate', x: -40, z: 40, w: 6.5, h: 8.5, d: 6.5},
+        {type: 'crate', x: 40, z: 40, w: 7.5, h: 7.5, d: 7.5},
+        {type: 'barrel', x: -28, z: -28, r: 1.9, h: 4.8},
+        {type: 'barrel', x: 28, z: 28, r: 1.9, h: 4.8},
+        {type: 'barrel', x: -28, z: 28, r: 1.9, h: 4.8},
+        {type: 'barrel', x: 28, z: -28, r: 1.9, h: 4.8}
+      ];
+
+      props.forEach(p => {
+        if (p.type === 'crate') {
+          const group = new THREE.Group();
+          const base = new THREE.Mesh(new THREE.BoxGeometry(p.w, p.h, p.d), metalMat);
+          base.castShadow = true; base.receiveShadow = true; group.add(base);
+          const edgeMat = new THREE.MeshBasicMaterial({ color: 0x00ff88 });
+          const edge = new THREE.Mesh(new THREE.BoxGeometry(p.w + 0.12, 0.35, 0.35), edgeMat);
+          edge.position.y = p.h / 2; group.add(edge);
+          group.position.set(p.x, p.h / 2, p.z);
+          scene.add(group);
+          obstacles.push({x: p.x, z: p.z, radius: Math.max(p.w, p.d)/2 + 1.2});
+        } else if (p.type === 'barrel') {
+          const mesh = new THREE.Mesh(new THREE.CylinderGeometry(p.r, p.r, p.h, 16), barrelMat);
+          mesh.position.set(p.x, p.h / 2, p.z);
+          mesh.castShadow = true;
+          scene.add(mesh);
+          obstacles.push({x: p.x, z: p.z, radius: p.r + 1.1});
+        }
+      });
+
+      // Rocks and Detailed Vegetation (Multi-layered trees and crystalline rocks)
+      for (let i = 0; i < 25; i++) {
+        const rx = (Math.random() - 0.5) * 145;
+        const rz = (Math.random() - 0.5) * 145;
+        if (Math.hypot(rx, rz) < 22) continue;
+
+        if (i % 2 === 0) {
+          const trunk = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.4, 6.5, 10), trunkMat);
+          trunk.position.set(rx, 3.2, rz); trunk.castShadow = true; scene.add(trunk);
+          const leaves1 = new THREE.Mesh(new THREE.ConeGeometry(5.5, 7.5, 10), leafMat);
+          leaves1.position.set(rx, 8.5, rz); leaves1.castShadow = true; scene.add(leaves1);
+          const leaves2 = new THREE.Mesh(new THREE.ConeGeometry(4, 5.5, 10), leafMat);
+          leaves2.position.set(rx, 12, rz); leaves2.castShadow = true; scene.add(leaves2);
+          obstacles.push({x: rx, z: rz, radius: 2.8});
+        } else {
+          const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(2.8 + Math.random() * 2.2, 1), rockMat);
+          rock.position.set(rx, 1.6, rz); rock.castShadow = true; scene.add(rock);
+          obstacles.push({x: rx, z: rz, radius: 2.8});
+        }
+      }
+    }
+
+    // Load Real GLTF 3D Soldier Model with Procedural Fallback
+    function loadFuturisticSoldierGLTF() {
+      playerGroup = new THREE.Group();
+      scene.add(playerGroup);
+
+      // Attempt to load Khronos / Three.js official Soldier GLB model
+      const soldierUrl = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Soldier/glTF-Binary/Soldier.glb';
+      
+      gltfLoader.load(soldierUrl, (gltf) => {
+        const model = gltf.scene;
+        model.scale.set(2.2, 2.2, 2.2);
+        model.position.set(0, 0, 0);
+        model.traverse(child => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            if (child.material) {
+              child.material.metalness = 0.5;
+              child.material.roughness = 0.3;
+            }
+          }
+        });
+        playerGroup.add(model);
+      }, undefined, (error) => {
+        // Fallback: Build ultra-detailed procedural composite soldier if network/CDN fails
+        console.warn('GLTF load failed, using fallback composite soldier model.');
+        buildFallbackDetailedSoldier();
+      });
+    }
+
+    function buildFallbackDetailedSoldier() {
+      const armorMat = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.25, metalness: 0.6 });
+      const clothMat = new THREE.MeshStandardMaterial({ color: 0x0d2114, roughness: 0.8 });
+      const helmetMat = new THREE.MeshStandardMaterial({ color: 0x14331d, roughness: 0.3, metalness: 0.8 });
+      const visorMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+      const gunMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.95, roughness: 0.1 });
+      const neonGlowMat = new THREE.MeshBasicMaterial({ color: 0x00ff88 });
+
+      const torso = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.8, 0.9), armorMat);
+      torso.position.y = 1.7; torso.castShadow = true; playerGroup.add(torso);
+
+      const pack = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.2, 0.6), clothMat);
+      pack.position.set(0, 1.7, -0.65); pack.castShadow = true; playerGroup.add(pack);
+
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.58, 20, 20), helmetMat);
+      head.position.y = 2.85; head.castShadow = true; playerGroup.add(head);
+
+      const visor = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.2, 0.5), visorMat);
+      visor.position.set(0, 2.85, 0.38); playerGroup.add(visor);
+
+      const rifle = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.38, 2.0), gunMat);
+      rifle.position.set(0.75, 1.6, 1.0); rifle.castShadow = true; playerGroup.add(rifle);
+
+      const legGeo = new THREE.CylinderGeometry(0.24, 0.2, 1.4, 10);
+      const leftLeg = new THREE.Mesh(legGeo, clothMat);
+      leftLeg.name = 'leftLeg'; leftLeg.position.set(-0.4, 0.7, 0); playerGroup.add(leftLeg);
+
+      const rightLeg = new THREE.Mesh(legGeo, clothMat);
+      rightLeg.name = 'rightLeg'; rightLeg.position.set(0.4, 0.7, 0); playerGroup.add(rightLeg);
+    }
+
+    // Detailed 3D Enemies (Giant Cockroaches, Ants, Mice, Worms) with Health Bars
+    function spawnEnemy3D() {
+      if (gameOver || !playerGroup || !scene) return;
+      const types = ['cucaracha', 'hormiga', 'raton', 'gusano'];
+      const type = types[Math.floor(Math.random() * types.length)];
+
+      let hpVal = 5 + Math.floor(level * 1.2);
+      let speedVal = 0.058 + level * 0.0065;
+      const enemyGroup = new THREE.Group();
+
+      if (type === 'cucaracha') {
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x4a2e18, roughness: 0.3, metalness: 0.5 });
+        const armorShell = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.75, 3.0), bodyMat);
+        armorShell.position.y = 0.65; armorShell.castShadow = true; enemyGroup.add(armorShell);
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.48, 12, 12), new THREE.MeshStandardMaterial({ color: 0x221308 }));
+        head.position.set(0, 0.65, 1.6); enemyGroup.add(head);
+        const ant1 = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.4, 6), bodyMat);
+        ant1.rotation.x = Math.PI / 4; ant1.position.set(-0.35, 1.0, 1.9); enemyGroup.add(ant1);
+        const ant2 = ant1.clone(); ant2.position.set(0.35, 1.0, 1.9); enemyGroup.add(ant2);
+      } else if (type === 'hormiga') {
+        const antMat = new THREE.MeshStandardMaterial({ color: 0x121212, roughness: 0.5, metalness: 0.4 });
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.52, 12, 12), antMat);
+        head.position.set(0, 0.75, 1.1); enemyGroup.add(head);
+        const thorax = new THREE.Mesh(new THREE.SphereGeometry(0.7, 12, 12), antMat);
+        thorax.position.set(0, 0.75, 0); enemyGroup.add(thorax);
+        const abdomen = new THREE.Mesh(new THREE.SphereGeometry(1.0, 12, 12), antMat);
+        abdomen.position.set(0, 0.85, -1.3); abdomen.castShadow = true; enemyGroup.add(abdomen);
+      } else if (type === 'raton') {
+        const mouseMat = new THREE.MeshStandardMaterial({ color: 0x828c96, roughness: 0.55 });
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 2.4, 12), mouseMat);
+        body.rotation.x = Math.PI / 2; body.position.y = 0.85; body.castShadow = true; enemyGroup.add(body);
+        const ear1 = new THREE.Mesh(new THREE.SphereGeometry(0.38, 8, 8), mouseMat);
+        ear1.position.set(-0.65, 1.6, 0.6); enemyGroup.add(ear1);
+        const ear2 = ear1.clone(); ear2.position.set(0.65, 1.6, 0.6); enemyGroup.add(ear2);
+      } else {
+        const wormMat = new THREE.MeshStandardMaterial({ color: 0xec4899, roughness: 0.35, emissive: 0x9c27b0, emissiveIntensity: 0.4 });
+        const worm = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 3.2, 12), wormMat);
+        worm.rotation.z = Math.PI / 2; worm.position.y = 0.85; worm.castShadow = true; enemyGroup.add(worm);
+      }
+
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 65 + Math.random() * 20;
+      enemyGroup.position.set(playerGroup.position.x + Math.cos(angle) * dist, 0, playerGroup.position.z + Math.sin(angle) * dist);
+      scene.add(enemyGroup);
+
+      // Create DOM Enemy Health Bar
+      const hb = document.createElement('div');
+      hb.className = 'enemy-hp-bar';
+      const hbf = document.createElement('div');
+      hbf.className = 'enemy-hp-fill';
+      hb.appendChild(hbf);
+      document.body.appendChild(hb);
+      hb.style.display = 'block';
+
+      enemies.push({ group: enemyGroup, type: type, speed: speedVal, hp: hpVal, maxHp: hpVal, hpBar: { element: hb, fill: hbf } });
+    }
+
+    setInterval(spawnEnemy3D, 1900);
+
+    // Input Listeners
+    function setupInputListeners() {
+      window.addEventListener('keydown', e => {
+        const k = e.key.toLowerCase();
+        keys[e.code] = true;
+        keys[k] = true;
+        if (['w', 's', 'a', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift', 'f'].includes(k) || ['KeyW', 'KeyS', 'KeyA', 'KeyD', 'Space', 'ShiftLeft', 'ShiftRight', 'KeyF'].includes(e.code)) {
+          e.preventDefault();
+        }
+        if (k === ' ' || e.code === 'Space') triggerJump();
+        if (k === 'f' || e.code === 'KeyF') triggerDash();
+        if (k === 'p' || e.code === 'Escape') togglePause();
+      });
+
+      window.addEventListener('keyup', e => {
+        keys[e.key.toLowerCase()] = false;
+        keys[e.code] = false;
+      });
+
+      container.addEventListener('mousemove', e => {
+        const rect = container.getBoundingClientRect();
+        mouseX = ((e.clientX - rect.left) / container.clientWidth) * 2 - 1;
+        mouseY = -((e.clientY - rect.top) / container.clientHeight) * 2 + 1;
+        if (playerGroup && !isPaused && !gameOver) {
+          playerGroup.rotation.y = Math.atan2(mouseX, mouseY);
+        }
+      });
+
+      container.addEventListener('mousedown', e => { if (e.button === 0) mouseFiring = true; });
+      container.addEventListener('mouseup', e => { if (e.button === 0) mouseFiring = false; });
+      container.addEventListener('click', () => { if (!isPaused && !gameOver) shootBullet(); });
+
+      // Touch Controls Setup
+      const jZone = document.getElementById('jz');
+      const jKnob = document.getElementById('jk');
+
+      jZone.addEventListener('touchstart', e => {
+        e.preventDefault();
+        const t = e.changedTouches[0];
+        touchJoyId = t.identifier;
+        touchJoyActive = true;
+        updateJoystick(t);
+      }, { passive: false });
+
+      jZone.addEventListener('touchmove', e => {
+        e.preventDefault();
+        for (let t of e.changedTouches) {
+          if (t.identifier === touchJoyId) updateJoystick(t);
+        }
+      }, { passive: false });
+
+      jZone.addEventListener('touchend', e => {
+        e.preventDefault();
+        touchJoyActive = false; touchJoyX = 0; touchJoyY = 0;
+        jKnob.style.transform = `translate(0px, 0px)`;
+      }, { passive: false });
+
+      document.getElementById('fb-fire').addEventListener('touchstart', e => { e.preventDefault(); shootBullet(); });
+      document.getElementById('fb-jump').addEventListener('touchstart', e => { e.preventDefault(); triggerJump(); });
+      document.getElementById('fb-dash').addEventListener('touchstart', e => { e.preventDefault(); triggerDash(); });
+    }
+
+    function updateJoystick(t) {
+      const rect = document.getElementById('jz').getBoundingClientRect();
+      const cx = rect.left + 65, cy = rect.top + 65;
+      const dx = t.clientX - cx, dy = t.clientY - cy;
+      const dist = Math.hypot(dx, dy);
+      const maxR = 48;
+      const angle = Math.atan2(dy, dx);
+      const clampedD = Math.min(dist, maxR);
+
+      touchJoyX = (Math.cos(angle) * clampedD) / maxR;
+      touchJoyY = (Math.sin(angle) * clampedD) / maxR;
+      jKnob.style.transform = `translate(${Math.cos(angle)*clampedD}px, ${Math.sin(angle)*clampedD}px)`;
+    }
+
+    let dashCooldown = 0;
+    function triggerDash() {
+      if (dashCooldown > 0 || !playerGroup) return;
+      dashCooldown = 80;
+      const dir = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), playerGroup.rotation.y);
+      playerGroup.position.addScaledVector(dir, 14);
+      createSparkParticles(playerGroup.position, 0x00ff88, 16);
+    }
+
+    function triggerJump() {
+      if (isJumping || !playerGroup) return;
+      playerVelY = 0.48;
+      isJumping = true;
+    }
+
+    // Advanced Green Energy Projectiles with Muzzle Flash, Trajectory and Impact Sparks
+    function shootBullet() {
+      if (gameOver || isPaused || !playerGroup || !scene) return;
+
+      const bulletGeo = new THREE.SphereGeometry(0.42, 10, 10);
+      const bulletMat = new THREE.MeshBasicMaterial({ color: 0x00ff88 });
+      const bullet = new THREE.Mesh(bulletGeo, bulletMat);
+
+      const dir = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), playerGroup.rotation.y);
+      bullet.position.copy(playerGroup.position).addScaledVector(dir, 1.8);
+      bullet.position.y = 1.8;
+
+      scene.add(bullet);
+      let dmg = inventory.plasmaRay ? attackPower * 3.2 : attackPower * 1.3;
+      bullets.push({ mesh: bullet, dir: dir, speed: 1.3, damage: dmg });
+
+      createSparkParticles(bullet.position, 0x00ff88, 8);
+
+      if (inventory.dualGun) {
+        const bullet2 = bullet.clone();
+        bullet2.position.add(new THREE.Vector3(0.4, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), playerGroup.rotation.y));
+        scene.add(bullet2);
+        bullets.push({ mesh: bullet2, dir: dir, speed: 1.3, damage: dmg });
+      }
+    }
+
+    function createSparkParticles(pos, colorHex, count) {
+      for (let i = 0; i < count; i++) {
+        const pGeo = new THREE.BoxGeometry(0.22, 0.22, 0.22);
+        const pMat = new THREE.MeshBasicMaterial({ color: colorHex });
+        const p = new THREE.Mesh(pGeo, pMat);
+        p.position.copy(pos);
+        scene.add(p);
+        particles.push({
+          mesh: p,
+          velocity: new THREE.Vector3((Math.random() - 0.5) * 0.6, Math.random() * 0.6, (Math.random() - 0.5) * 0.6),
+          life: 35
+        });
+      }
+    }
+
+    // Main 3D Animation & Game Loop
+    function animate3D() {
+      if (scene && renderer && camera) {
+        requestAnimationFrame(animate3D);
+
+        if (!isPaused && !gameOver) {
+          // Passive survival XP over time
+          if (Math.random() < 0.04) {
+            xp += 1;
+            checkLevelProgress();
+          }
+
+          let moveSpeed = (keys['shift'] || keys['ShiftLeft'] || keys['ShiftRight']) ? 0.58 : 0.4;
+          moveSpeed += inventory.speedBonus;
+          let dx = 0, dz = 0;
+
+          if (keys['w'] || keys['arrowup'] || keys['KeyW'] || keys['ArrowUp']) dz -= moveSpeed;
+          if (keys['s'] || keys['arrowdown'] || keys['KeyS'] || keys['ArrowDown']) dz += moveSpeed;
+          if (keys['a'] || keys['arrowleft'] || keys['KeyA'] || keys['ArrowLeft']) dx -= moveSpeed;
+          if (keys['d'] || keys['arrowright'] || keys['KeyD'] || keys['ArrowRight']) dx += moveSpeed;
+
+          if (touchJoyActive) {
+            dx += touchJoyX * moveSpeed;
+            dz += touchJoyY * moveSpeed;
+          }
+
+          if (dx !== 0 || dz !== 0) {
+            let nextX = playerGroup.position.x + dx;
+            let nextZ = playerGroup.position.z + dz;
+
+            let blocked = false;
+            for (let obs of obstacles) {
+              if (Math.hypot(nextX - obs.x, nextZ - obs.z) < obs.radius + 1.25) {
+                blocked = true; break;
+              }
+            }
+
+            if (!blocked) {
+              playerGroup.position.x = Math.max(-76, Math.min(76, nextX));
+              playerGroup.position.z = Math.max(-76, Math.min(76, nextZ));
+            }
+
+            playerGroup.rotation.y = Math.atan2(dx, dz);
+
+            const time = Date.now() * 0.02;
+            const leftLeg = playerGroup.getObjectByName('leftLeg');
+            const rightLeg = playerGroup.getObjectByName('rightLeg');
+            if (leftLeg && rightLeg) {
+              leftLeg.rotation.x = Math.sin(time) * 0.85;
+              rightLeg.rotation.x = -Math.sin(time) * 0.85;
+            }
+          }
+
+          // Jump & Gravity
+          if (isJumping) {
+            playerGroup.position.y += playerVelY;
+            playerVelY += gravity;
+            if (playerGroup.position.y <= 0) {
+              playerGroup.position.y = 0;
+              isJumping = false; playerVelY = 0;
+            }
+          }
+
+          if (mouseFiring && Math.random() < 0.3) {
+            shootBullet();
+          }
+
+          if (dashCooldown > 0) dashCooldown--;
+
+          // Camera smooth third person follow
+          const targetCamPos = new THREE.Vector3(
+            playerGroup.position.x,
+            playerGroup.position.y + 22,
+            playerGroup.position.z + 28
+          );
+          camera.position.lerp(targetCamPos, 0.12);
+          camera.lookAt(playerGroup.position.x, playerGroup.position.y + 1.6, playerGroup.position.z);
+
+          // Update Bullets
+          for (let i = bullets.length - 1; i >= 0; i--) {
+            let b = bullets[i];
+            b.mesh.position.addScaledVector(b.dir, b.speed);
+            if (b.mesh.position.length() > 95) {
+              scene.remove(b.mesh);
+              bullets.splice(i, 1);
+            }
+          }
+
+          // Update Particles
+          for (let i = particles.length - 1; i >= 0; i--) {
+            let pt = particles[i];
+            pt.mesh.position.add(pt.velocity);
+            pt.life--;
+            if (pt.life <= 0) {
+              scene.remove(pt.mesh);
+              particles.splice(i, 1);
+            }
+          }
+
+          // Update Enemies, Health Bars & Collisions
+          for (let i = enemies.length - 1; i >= 0; i--) {
+            let en = enemies[i];
+            if (!en || !en.group) continue;
+            en.group.lookAt(playerGroup.position);
+            en.group.translateZ(en.speed);
+
+            // Project 3D enemy position to 2D screen coordinates for Health Bar
+            const v = en.group.position.clone();
+            v.y += 1.9;
+            v.project(camera);
+            const w = container.clientWidth || window.innerWidth;
+            const h = container.clientHeight || window.innerHeight;
+            const sx = (v.x *  .5 + .5) * w;
+            const sy = (v.y * -.5 + .5) * h;
+            if (en.hpBar && en.hpBar.element) {
+              if (v.z < 1) {
+                en.hpBar.element.style.left = sx + 'px';
+                en.hpBar.element.style.top = sy + 'px';
+                en.hpBar.element.style.display = 'block';
+                en.hpBar.fill.style.width = Math.max(0, (en.hp / en.maxHp) * 100) + '%';
+              } else {
+                en.hpBar.element.style.display = 'none';
+              }
+            }
+
+            // Enemy touches player
+            if (en.group.position.distanceTo(playerGroup.position) < 2.3) {
+              if (inventory.shield) {
+                inventory.shield = false; // Shield absorbs hit
+                createSparkParticles(playerGroup.position, 0x00b4ff, 18);
+              } else {
+                hp -= 0.65;
+                updateHud();
+              }
+              if (hp <= 0) {
+                gameOver = true;
+                document.getElementById('finalKills').textContent = kills;
+                document.getElementById('finalCoins').textContent = coinsCount;
+                document.getElementById('finalLevel').textContent = level;
+                document.getElementById('finalPoints').textContent = kills * 18 + coinsCount * 10 + xp;
+                document.getElementById('gameOverModal').style.display = 'flex';
+                enemies.forEach(e => { if (e.hpBar && e.hpBar.element) e.hpBar.element.remove(); });
+              }
+            }
+
+            // Bullet hits enemy
+            let enemyDead = false;
+            for (let j = bullets.length - 1; j >= 0; j--) {
+              let b = bullets[j];
+              let distXZ = Math.hypot(en.group.position.x - b.mesh.position.x, en.group.position.z - b.mesh.position.z);
+              if (distXZ < 2.5) {
+                createSparkParticles(b.mesh.position, 0xff3d00, 12);
+                scene.remove(b.mesh);
+                bullets.splice(j, 1);
+                en.hp -= b.damage;
+
+                en.group.traverse(child => {
+                  if (child.material) {
+                    if (child.userData.origColor === undefined) child.userData.origColor = child.material.color.getHex();
+                    child.material.color.setHex(0xff0000);
+                    setTimeout(() => {
+                      if (child && child.material && child.userData.origColor !== undefined) {
+                        child.material.color.setHex(child.userData.origColor);
+                      }
+                    }, 150);
+                  }
+                });
+
+                if (en.hp <= 0) {
+                  scene.remove(en.group);
+                  if (en.hpBar && en.hpBar.element) en.hpBar.element.remove();
+                  enemies.splice(i, 1);
+                  kills++;
+                  coinsCount++;
+                  xp += 30;
+                  updateHud();
+                  enemyDead = true;
+                  break;
+                }
+              }
+            }
+            if (enemyDead) continue;
+          }
+
+          // Respawn enemies dynamically
+          if (enemies.length < 8 && Math.random() < 0.055) {
+            spawnEnemy3D();
+          }
+        }
+
+        renderer.render(scene, camera);
+      }
+    }
+
+    function checkLevelProgress() {
+      let requiredXp = level * 400;
+      if (xp >= requiredXp) {
+        level++;
+        maxHp += 40;
+        hp = maxHp;
+        attackPower += 0.7;
+        const toast = document.createElement('div');
+        toast.className = 'position-fixed bottom-0 end-0 m-3 p-3 bg-success text-white rounded shadow fw-bold';
+        toast.style.zIndex = '9999';
+        toast.innerHTML = `<i class="fas fa-trophy me-2"></i>¡NIVEL UP! Alcanzaste el Nivel ${level}.`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3500);
+      }
+      updateHud();
+    }
+
+    function updateHud() {
+      document.getElementById('hp-fill').style.width = Math.max(0, (hp / maxHp) * 100) + '%';
+      document.getElementById('hp-val').textContent = Math.max(0, Math.floor(hp));
+      document.getElementById('hud-coins').textContent = coinsCount;
+      document.getElementById('diff-val').textContent = `Nivel ${level} (${xp} XP)`;
+      document.getElementById('kills-val').textContent = kills;
+      document.getElementById('dashCoins').textContent = coinsCount;
+
+      let wName = 'Bláster Táctico 🔫';
+      if (inventory.plasmaRay) wName = 'Rayo Plasma GLTF HD 💥';
+      else if (inventory.dualGun) wName = 'Doble Bláster ⚡';
+      document.getElementById('hud-weapon').textContent = wName;
+    }
+
+    function enviarPuntuacion() {
+      const totalPoints = kills * 18 + coinsCount * 10 + xp;
+      fetch('/juego-arena/guardar_score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kills: kills, coins: coinsCount, puntos: totalPoints, xp: xp, level: level })
+      })
+      .then(res => res.json())
+      .then(data => {
+        alert('¡Puntuación y XP guardadas con éxito en el servidor!');
+        window.location.reload();
+      })
+      .catch(err => {
+        alert('Error al guardar puntuación.');
+      });
+    }
+
+    // Auto open challenge modal on load
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('challengeStartModal').style.display = 'flex';
+      updateHud();
+    });
+  </script>
+</body>
+</html>

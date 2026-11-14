@@ -368,14 +368,21 @@
                     <div class="col-md-5">
                         <div class="card p-4 mb-4">
                             <h4 class="fw-bold mb-3">Publicar Anuncio</h4>
+                            <div class="mb-3 p-3 bg-light rounded border">
+                                <label class="form-label fw-bold text-primary"><i class="fas fa-robot"></i> Generar Anuncio con IA (Gemini)</label>
+                                <div class="input-group">
+                                    <input type="text" id="ai-tema" class="form-control" placeholder="Ej: Torneo de fin de semana">
+                                    <button type="button" class="btn btn-outline-primary" onclick="generarAnuncioAI()"><i class="fas fa-magic"></i> Generar</button>
+                                </div>
+                            </div>
                             <form action="{{ url_for('admin_agregar_anuncio') }}" method="POST" enctype="multipart/form-data">
                                 <div class="mb-3">
                                     <label class="form-label">Título</label>
-                                    <input type="text" name="titulo" class="form-control" required>
+                                    <input type="text" id="anuncio-titulo" name="titulo" class="form-control" required>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Contenido</label>
-                                    <textarea name="contenido" class="form-control" rows="4" required></textarea>
+                                    <textarea id="anuncio-contenido" name="contenido" class="form-control" rows="4" required></textarea>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Archivo Adjunto (Opcional)</label>
@@ -383,6 +390,38 @@
                                 </div>
                                 <button type="submit" class="btn btn-primary w-100">Publicar</button>
                             </form>
+                            <script>
+                            async function generarAnuncioAI() {
+                                const temaInput = document.getElementById('ai-tema');
+                                const tema = temaInput.value.trim();
+                                if (!tema) {
+                                    alert('Por favor ingresa un tema o idea para el anuncio.');
+                                    return;
+                                }
+                                const btn = event.target;
+                                btn.disabled = true;
+                                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando...';
+                                try {
+                                    const res = await fetch('/admin/anuncio/generar-ia', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ tema })
+                                    });
+                                    const data = await res.json();
+                                    if (res.ok) {
+                                        document.getElementById('anuncio-titulo').value = data.titulo;
+                                        document.getElementById('anuncio-contenido').value = data.contenido;
+                                    } else {
+                                        alert('Error: ' + (data.error || 'No se pudo generar'));
+                                    }
+                                } catch (e) {
+                                    alert('Error de red al conectar con la IA.');
+                                } finally {
+                                    btn.disabled = false;
+                                    btn.innerHTML = '<i class="fas fa-magic"></i> Generar';
+                                }
+                            }
+                            </script>
                         </div>
                     </div>
                     <div class="col-md-7">

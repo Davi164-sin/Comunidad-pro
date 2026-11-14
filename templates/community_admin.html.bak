@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - ComunidadPro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card { border: none; border-radius: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{{ url_for('index') }}"><i class="fas fa-users text-primary me-2"></i>ComunidadPro [ADMIN]</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('recursos') }}">Recursos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('encuestas_vista') }}">Encuestas</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('ranking_comunidad') }}">Ranking</a></li>
+                    <li class="nav-item"><a class="nav-link text-warning fw-bold" href="{{ url_for('zona_juegos') }}"><i class="fas fa-gamepad me-1"></i> Juegos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('about') }}">Acerca de</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('almacenamiento_vista') }}">Almacenamiento</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('chat_comunidad_vista') }}">Chat</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard') }}">Panel</a></li>
+                    <li class="nav-item"><a class="btn btn-outline-light btn-sm ms-2 mt-1" href="{{ url_for('logout') }}">Salir</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold mb-0">Panel de Administración y Moderación</h2>
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-file-csv me-1"></i> Exportar Datos
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{{ url_for('admin_exportar_csv', tipo='usuarios') }}">Exportar Usuarios (CSV)</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('admin_exportar_csv', tipo='creadores') }}">Exportar Creadores (CSV)</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('admin_exportar_csv', tipo='ranking') }}">Exportar Ranking (CSV)</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Secciones de Pestañas -->
+        <ul class="nav nav-tabs mb-4" id="adminTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active fw-bold" id="miembros-tab" data-bs-toggle="tab" data-bs-target="#miembros" type="button">Miembros y Roles</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold" id="creadores-tab" data-bs-toggle="tab" data-bs-target="#creadores" type="button">Creadores</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold" id="reportes-tab" data-bs-toggle="tab" data-bs-target="#reportes" type="button">Reportes <span class="badge bg-danger">{{ reportes|length }}</span></button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold" id="encuestas-tab" data-bs-toggle="tab" data-bs-target="#encuestas" type="button">Encuestas</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold" id="recursos-tab" data-bs-toggle="tab" data-bs-target="#recursos" type="button">Multimedia</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold" id="enlaces-tab" data-bs-toggle="tab" data-bs-target="#enlaces" type="button">WhatsApp</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold" id="anuncios-tab" data-bs-toggle="tab" data-bs-target="#anuncios" type="button">Anuncios</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold text-success" id="niveles-tab" data-bs-toggle="tab" data-bs-target="#niveles" type="button"><i class="fas fa-layer-group me-1"></i> Gestión de Niveles</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold text-info" id="personalizar-tab" data-bs-toggle="tab" data-bs-target="#personalizar" type="button"><i class="fas fa-paint-brush me-1"></i> Personalizar</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold text-warning" id="arquitectura-tab" data-bs-toggle="tab" data-bs-target="#arquitectura" type="button"><i class="fas fa-sitemap me-1"></i> Arquitectura & Sistema</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="adminTabContent">
+            <!-- Miembros, Roles y Puntos -->
+            <div class="tab-pane fade show active" id="miembros" role="tabpanel">
+                <div class="card p-4">
+                    <h4 class="fw-bold mb-3">Gestión de Usuarios, Roles y Puntos de Aporte</h4>
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Email</th>
+                                    <th>Rol Actual</th>
+                                    <th>Cambiar Rol</th>
+                                    <th>Puntos</th>
+                                    <th>Sumar Aporte</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for u_item in usuarios %}
+                                    <tr>
+                                        <td class="fw-bold">{{ u_item.nombre }}</td>
+                                        <td>{{ u_item.email }}</td>
+                                        <td><span class="badge bg-{{ 'warning text-dark' if u_item.rol == 'admin' else ('info' if u_item.rol == 'moderador' else ('primary' if u_item.rol == 'creador' else 'secondary')) }}">{{ u_item.rol }}</span></td>
+                                        <td>
+                                            {% if usuario.rol == 'admin' and u_item.id != usuario.id %}
+                                                <form action="{{ url_for('admin_cambiar_rol', uid=u_item.id) }}" method="POST" class="d-flex gap-2">
+                                                    <select name="rol" class="form-select form-select-sm" style="width: 120px;">
+                                                        <option value="miembro" {{ 'selected' if u_item.rol == 'miembro' else '' }}>Miembro</option>
+                                                        <option value="moderador" {{ 'selected' if u_item.rol == 'moderador' else '' }}>Moderador</option>
+                                                        <option value="creador" {{ 'selected' if u_item.rol == 'creador' else '' }}>Creador</option>
+                                                        <option value="admin" {{ 'selected' if u_item.rol == 'admin' else '' }}>Admin</option>
+                                                    </select>
+                                                    <button type="submit" class="btn btn-outline-primary btn-sm">Cambiar</button>
+                                                </form>
+                                            {% else %}
+                                                <small class="text-muted">Fijo</small>
+                                            {% endif %}
+                                        </td>
+                                        <td class="fw-bold text-primary">{{ u_item.puntos_contribucion }} pts</td>
+                                        <td>
+                                            <form action="{{ url_for('admin_sumar_puntos', uid=u_item.id) }}" method="POST" class="d-flex gap-2">
+                                                <input type="number" name="puntos" value="10" class="form-control form-control-sm" style="width: 70px;" required>
+                                                <button type="submit" class="btn btn-success btn-sm"><i class="fas fa-plus"></i></button>
+                                            </form>
+                                        </td>
+                                        <td>
+                                            {% if u_item.id != usuario.id %}
+                                                <form action="{{ url_for('admin_eliminar_usuario', uid=u_item.id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar este usuario y todo su contenido?');">
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash-alt"></i> Eliminar</button>
+                                                </form>
+                                            {% else %}
+                                                <small class="text-muted">Tú</small>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Creadores -->
+            <div class="tab-pane fade" id="creadores" role="tabpanel">
+                <div class="card p-4">
+                    <h4 class="fw-bold mb-3">Solicitudes y Creadores Registrados</h4>
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Nombre Artístico</th>
+                                    <th>Email</th>
+                                    <th>Categoría</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for c in creadores %}
+                                    <tr>
+                                        <td class="fw-bold">{{ c.nombre_artistico }}</td>
+                                        <td>{{ c.email }}</td>
+                                        <td><span class="badge bg-secondary">{{ c.categoria }}</span></td>
+                                        <td><span class="badge bg-{{ 'success' if c.estado_aprobacion == 'aprobado' else ('warning text-dark' if c.estado_aprobacion == 'pendiente' else 'danger') }}">{{ c.estado_aprobacion }}</span></td>
+                                        <td>
+                                            {% if c.estado_aprobacion != 'aprobado' %}
+                                                <a href="{{ url_for('admin_revisar_creador', creador_id=c.id, accion='aprobar') }}" class="btn btn-success btn-sm">Aprobar</a>
+                                            {% endif %}
+                                            {% if c.estado_aprobacion != 'rechazado' %}
+                                                <a href="{{ url_for('admin_revisar_creador', creador_id=c.id, accion='rechazar') }}" class="btn btn-danger btn-sm">Rechazar</a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reportes y Moderación -->
+            <div class="tab-pane fade" id="reportes" role="tabpanel">
+                <div class="card p-4">
+                    <h4 class="fw-bold mb-3"><i class="fas fa-flag text-danger me-2"></i>Reportes de Contenido</h4>
+                    {% if reportes %}
+                        <div class="table-responsive">
+                            <table class="table align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Tipo</th>
+                                        <th>ID Ítem</th>
+                                        <th>Reportado Por</th>
+                                        <th>Motivo</th>
+                                        <th>Fecha</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for rep in reportes %}
+                                        <tr>
+                                            <td><span class="badge bg-danger text-uppercase">{{ rep.tipo }}</span></td>
+                                            <td>{{ rep.item_id }}</td>
+                                            <td>{{ rep.usuario_nombre }}</td>
+                                            <td>{{ rep.motivo }}</td>
+                                            <td><small class="text-muted">{{ rep.creado_en }}</small></td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">No hay reportes pendientes.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Encuestas -->
+            <div class="tab-pane fade" id="encuestas" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-5">
+                        <div class="card p-4 mb-4">
+                            <h4 class="fw-bold mb-3">Crear Nueva Encuesta</h4>
+                            <form action="{{ url_for('admin_crear_encuesta') }}" method="POST">
+                                <div class="mb-3">
+                                    <label class="form-label">Pregunta de la Encuesta</label>
+                                    <input type="text" name="pregunta" class="form-control" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Opciones de Respuesta</label>
+                                    <input type="text" name="opciones" class="form-control mb-2" placeholder="Opción 1" required>
+                                    <input type="text" name="opciones" class="form-control mb-2" placeholder="Opción 2" required>
+                                    <input type="text" name="opciones" class="form-control mb-2" placeholder="Opción 3 (Opcional)">
+                                    <input type="text" name="opciones" class="form-control" placeholder="Opción 4 (Opcional)">
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">Publicar Encuesta</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="card p-4">
+                            <h4 class="fw-bold mb-3">Encuestas Registradas</h4>
+                            <div class="list-group">
+                                {% for enc in encuestas %}
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-0 fw-bold">{{ enc.pregunta }}</h6>
+                                            <span class="badge bg-{{ 'success' if enc.activa == 1 else 'secondary' }}">{{ 'Activa' if enc.activa == 1 else 'Cerrada' }}</span>
+                                        </div>
+                                        {% if enc.activa == 1 %}
+                                            <a href="{{ url_for('admin_cerrar_encuesta', encuesta_id=enc.id) }}" class="btn btn-outline-warning btn-sm">Cerrar Encuesta</a>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recursos Multimedia -->
+            <div class="tab-pane fade" id="recursos" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-5">
+                        <div class="card p-4 mb-4">
+                            <h4 class="fw-bold mb-3">Subir Recurso / Multimedia</h4>
+                            <form action="{{ url_for('admin_agregar_recurso') }}" method="POST" enctype="multipart/form-data">
+                                <div class="mb-3">
+                                    <label class="form-label">Título</label>
+                                    <input type="text" name="titulo" class="form-control" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Descripción</label>
+                                    <textarea name="descripcion" class="form-control" rows="2"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Archivo (Video, Audio, Imagen, Documento)</label>
+                                    <input type="file" name="archivo" class="form-control" accept="image/*,video/mp4,audio/mp3,audio/wav,.pdf,.zip" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">Subir Recurso</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="card p-4">
+                            <h4 class="fw-bold mb-3">Recursos Publicados</h4>
+                            <div class="list-group">
+                                {% for r in recursos %}
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-0 fw-bold">{{ r.titulo }}</h6>
+                                            <small class="text-muted text-uppercase">{{ r.tipo }} &bull; {{ r.archivo }}</small>
+                                        </div>
+                                        <a href="{{ url_for('admin_eliminar_recurso', recurso_id=r.id) }}" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash"></i></a>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Enlaces WhatsApp -->
+            <div class="tab-pane fade" id="enlaces" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-5">
+                        <div class="card p-4 mb-4">
+                            <h4 class="fw-bold mb-3">Agregar Enlace de Grupo</h4>
+                            <form action="{{ url_for('admin_agregar_enlace') }}" method="POST">
+                                <div class="mb-3">
+                                    <label class="form-label">Título del Grupo</label>
+                                    <input type="text" name="titulo" class="form-control" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">URL de Invitación (WhatsApp)</label>
+                                    <input type="url" name="url" class="form-control" placeholder="https://chat.whatsapp.com/..." required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Descripción</label>
+                                    <textarea name="descripcion" class="form-control" rows="2"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Categoría</label>
+                                    <input type="text" name="categoria" class="form-control" value="WhatsApp">
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">Agregar Enlace</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="card p-4">
+                            <h4 class="fw-bold mb-3">Enlaces Existentes</h4>
+                            <div class="list-group">
+                                {% for e in enlaces %}
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-0 fw-bold">{{ e.titulo }}</h6>
+                                            <small class="text-muted">{{ e.url }}</small>
+                                        </div>
+                                        <a href="{{ url_for('admin_eliminar_enlace', enlace_id=e.id) }}" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash"></i></a>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Anuncios -->
+            <div class="tab-pane fade" id="anuncios" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-5">
+                        <div class="card p-4 mb-4">
+                            <h4 class="fw-bold mb-3">Publicar Anuncio</h4>
+                            <form action="{{ url_for('admin_agregar_anuncio') }}" method="POST" enctype="multipart/form-data">
+                                <div class="mb-3">
+                                    <label class="form-label">Título</label>
+                                    <input type="text" name="titulo" class="form-control" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Contenido</label>
+                                    <textarea name="contenido" class="form-control" rows="4" required></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Archivo Adjunto (Opcional)</label>
+                                    <input type="file" name="archivo" class="form-control" accept="image/*,video/mp4,audio/mp3">
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">Publicar</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="card p-4">
+                            <h4 class="fw-bold mb-3">Anuncios Publicados</h4>
+                            <div class="list-group">
+                                {% for a in anuncios %}
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-0 fw-bold">{{ a.titulo }}</h6>
+                                            <small class="text-muted">{{ a.creado_en }}</small>
+                                        </div>
+                                        <a href="{{ url_for('admin_eliminar_anuncio', anuncio_id=a.id) }}" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash"></i></a>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Personalización -->
+            <div class="tab-pane fade" id="personalizar" role="tabpanel">
+                <div class="card p-4 max-w-lg mx-auto" style="max-width: 700px;">
+                    <h4 class="fw-bold mb-3"><i class="fas fa-paint-brush text-info me-2"></i>Personalizar la Plataforma a tu Gusto</h4>
+                    <form action="{{ url_for('admin_personalizar') }}" method="POST">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Título de la Plataforma</label>
+                            <input type="text" name="titulo_plataforma" class="form-control" value="{{ cfg.titulo_plataforma }}" required>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Color Principal (Hex)</label>
+                                <input type="color" name="color_principal" class="form-control form-control-color w-100" value="{{ cfg.color_principal }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Color Secundario (Hex)</label>
+                                <input type="color" name="color_secundario" class="form-control form-control-color w-100" value="{{ cfg.color_secundario }}" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Mensaje de Bienvenida (Hero)</label>
+                            <textarea name="mensaje_bienvenida" class="form-control" rows="2" required>{{ cfg.mensaje_bienvenida }}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Texto de Pie de Página (Footer)</label>
+                            <input type="text" name="footer_texto" class="form-control" value="{{ cfg.footer_texto }}" required>
+                        </div>
+                        <button type="submit" class="btn btn-info fw-bold text-white w-100">Guardar Personalización</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Arquitectura & Sistema -->
+            <!-- Gestión de Niveles del Juego -->
+            <div class="tab-pane fade" id="niveles" role="tabpanel">
+                <div class="card p-4">
+                    <h4 class="fw-bold mb-3"><i class="fas fa-layer-group text-success me-2"></i>Crear y Administrar Niveles del Juego</h4>
+                    <p class="text-muted">Como administrador, puedes añadir nuevos niveles, configurar su dificultad y velocidad de los bichos (hasta el nivel 1000).</p>
+                    <form action="{{ url_for('admin_nivel_agregar') }}" method="POST" class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <label class="form-label">Número de Nivel (1 - 1000)</label>
+                            <input type="number" name="numero_nivel" class="form-control" min="1" max="1000" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Nombre del Nivel</label>
+                            <input type="text" name="nombre_nivel" class="form-control" placeholder="Ej: Zona Extrema" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Velocidad Bichos</label>
+                            <input type="number" step="0.1" name="bichos_velocidad" class="form-control" value="1.5" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Descripción</label>
+                            <input type="text" name="descripcion" class="form-control" placeholder="Ej: Horda pesada de cucarachas">
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-success fw-bold"><i class="fas fa-plus me-1"></i> Guardar / Añadir Nivel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="arquitectura" role="tabpanel">
+                <div class="card p-4">
+                    <h4 class="fw-bold mb-3"><i class="fas fa-sitemap text-warning me-2"></i>Arquitectura de la Plataforma [Todo Incluido]</h4>
+                    <p class="text-muted">Resumen completo de la infraestructura, almacenamiento, base de datos y módulos activos.</p>
+                    <div class="row g-4 mt-2">
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded border">
+                                <h6 class="fw-bold text-primary"><i class="fas fa-database me-2"></i>Base de Datos</h6>
+                                <p class="mb-1 small"><strong>Motor:</strong> SQLite 3</p>
+                                <p class="mb-1 small"><strong>Archivo:</strong> community_database.db</p>
+                                <p class="mb-0 small text-success"><i class="fas fa-check-circle me-1"></i> Conectada y Operativa</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded border">
+                                <h6 class="fw-bold text-success"><i class="fas fa-hdd me-2"></i>Almacenamiento</h6>
+                                <p class="mb-1 small"><strong>Directorio:</strong> /static/uploads</p>
+                                <p class="mb-1 small"><strong>Límite Cuota:</strong> 100 MB por usuario</p>
+                                <p class="mb-0 small text-success"><i class="fas fa-check-circle me-1"></i> Sincronizado</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded border">
+                                <h6 class="fw-bold text-danger"><i class="fas fa-gamepad me-2"></i>Zona de Juegos</h6>
+                                <p class="mb-1 small"><strong>Módulo:</strong> Arcade & Minijuegos</p>
+                                <p class="mb-1 small"><strong>Recompensas:</strong> Puntos de Aporte</p>
+                                <p class="mb-0 small text-success"><i class="fas fa-check-circle me-1"></i> Activo (/juegos)</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <h5 class="fw-bold mb-3">Módulos del Sistema Integrados</h5>
+                    <ul class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-comments text-primary me-2"></i> Chat en Tiempo Real (Flask-SocketIO)</span>
+                            <span class="badge bg-success">Activo</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-users-cog text-info me-2"></i> Gestión de Creadores y Talentos Independientes</span>
+                            <span class="badge bg-success">Activo</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-folder-open text-warning me-2"></i> Repositorio de Recursos Multimedia & Guías</span>
+                            <span class="badge bg-success">Activo</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-robot text-dark me-2"></i> Asistente Gemini AI Integrado</span>
+                            <span class="badge bg-success">Activo</span>
+                        </li>
+                    </ul>
+
+                    <h5 class="fw-bold mb-3">Herramientas de Mantenimiento y Diagnóstico</h5>
+                    <div class="d-flex gap-3">
+                        <a href="{{ url_for('admin_mantenimiento', accion='optimizar') }}" class="btn btn-outline-primary" onclick="return confirm('¿Optimizar base de datos (VACUUM)?');"><i class="fas fa-broom me-1"></i> Optimizar Base de Datos</a>
+                        <a href="{{ url_for('admin_mantenimiento', accion='vaciar_chat') }}" class="btn btn-outline-danger" onclick="return confirm('¿Vaciar todo el historial del chat de la comunidad?');"><i class="fas fa-trash me-1"></i> Vaciar Chat de Comunidad</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
